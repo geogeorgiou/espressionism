@@ -91,6 +91,24 @@ describe('Bitspresso scared mood', () => {
     )
   })
 
+  it('draws the sweat drop over the body, so it leaves no hole as it drips', () => {
+    const pixels = buildMascot('mug', 'scared', 'house')
+    for (const drop of pixels.filter((p) => p.part === 'sweat')) {
+      expect(
+        pixels.some(
+          (p) => p.part === 'body' && p.x === drop.x && p.y === drop.y,
+        ),
+      ).toBe(true)
+    }
+  })
+
+  it('has no brows, only the squeezed eyes', () => {
+    const rows = stampFace('mug', 'scared')
+    const plain = stampFace('mug', 'idle')
+    const firstEyeRow = rows.findIndex((row) => row.includes('E'))
+    expect(rows[firstEyeRow - 1]).toEqual(plain[firstEyeRow - 1])
+  })
+
   it('keeps the sweat drop to the scared face', () => {
     for (const mood of MASCOT_MOODS.filter((m) => m !== 'scared')) {
       const pixels = buildMascot('togo', mood, 'latte')

@@ -173,6 +173,11 @@ export const FLAVOR_COLORS: Record<
 const SPRITE_TOP = 5
 const FACE_TOP = 4
 const STEAM_WAVE = [0, 1, 0, -1]
+/** Scared sweat drop, relative to the face kit: just right of the face. */
+const SWEAT_DROP = [
+  [10, 0],
+  [10, 1],
+]
 
 /** Returns the sprite rows (as letters) with the mood's face stamped on. */
 export function stampFace(form: MascotForm, mood: MascotMood): string[][] {
@@ -258,15 +263,11 @@ export function stampFace(form: MascotForm, mood: MascotMood): string[][] {
     case 'scared': {
       eyeSqueezed(1, true)
       eyeSqueezed(7, false)
-      for (const dx of [1, 2, 7, 8]) set(dx, -1, 'K')
       // Wobbly mouth.
       set(3, 3, 'M')
       set(4, 2, 'M')
       set(5, 3, 'M')
       set(6, 2, 'M')
-      // Sweat drop just right of the face, on the shaded edge.
-      set(10, 0, 'T')
-      set(10, 1, 'T')
       break
     }
   }
@@ -298,9 +299,7 @@ export function buildMascot(
   stampFace(form, mood).forEach((row, y) => {
     row.forEach((ch, x) => {
       const fill = colors[ch]
-      if (fill) {
-        put(x, SPRITE_TOP + y, fill, 1, ch === 'T' ? 'sweat' : 'body')
-      }
+      if (fill) put(x, SPRITE_TOP + y, fill)
     })
   })
 
@@ -320,5 +319,18 @@ export function buildMascot(
     })
   }
 
-  return [...pixels.values()]
+  // The sweat drop sits on top of the body rather than replacing it, so the
+  // shade shows through again as the drop drips down.
+  const sweat: MascotPixel[] =
+    mood === 'scared'
+      ? SWEAT_DROP.map(([dx, dy]) => ({
+          x: FORMS[form].faceX + dx,
+          y: SPRITE_TOP + FACE_TOP + dy,
+          fill: colors.T,
+          opacity: 1,
+          part: 'sweat',
+        }))
+      : []
+
+  return [...pixels.values(), ...sweat]
 }
