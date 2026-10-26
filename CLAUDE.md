@@ -66,7 +66,7 @@ src/
 
 ### Thin-routes rule
 
-Route files (`src/routes/*.tsx`) contain **only** `createFileRoute` with `validateSearch`, `loaderDeps`, `loader`, `pendingComponent`, `errorComponent` and `component`. No component definitions, no business logic. Pages import `Route` from their route file for `useSearch` / `useNavigate`.
+Route files (`src/routes/*.tsx`) contain **only** `createFileRoute` with `validateSearch`, `beforeLoad` (redirects), `loaderDeps`, `loader`, `pendingComponent`, `errorComponent` and `component`. No component definitions, no business logic. Unknown paths hit the catch-all `routes/$.tsx`, which redirects to `/` instead of showing a Not Found page. Pages import `Route` from their route file for `useSearch` / `useNavigate`.
 
 ### Business logic stays pure
 
