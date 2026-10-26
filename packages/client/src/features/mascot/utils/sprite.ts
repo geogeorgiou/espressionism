@@ -195,11 +195,12 @@ export function stampFace(form: MascotForm, mood: MascotMood): string[][] {
     set(dx, 0, 'E')
     set(dx + 1, 0, 'E')
   }
-  /** 3×3 eye with a shine in the middle, for a wide-open stare. */
-  const eyeWide = (dx: number) => {
-    for (let x = 0; x < 3; x++) {
-      for (let y = 0; y < 3; y++) set(dx + x, y, x === 1 && y === 1 ? 'H' : 'E')
-    }
+  /** Eye squeezed shut into a chevron: `>` points right, `<` points left. */
+  const eyeSqueezed = (dx: number, pointsRight: boolean) => {
+    const [outer, inner] = pointsRight ? [dx, dx + 1] : [dx + 1, dx]
+    set(outer, 0, 'E')
+    set(inner, 1, 'E')
+    set(outer, 2, 'E')
   }
   const smile = () => {
     set(3, 2, 'M')
@@ -255,10 +256,9 @@ export function stampFace(form: MascotForm, mood: MascotMood): string[][] {
       break
     }
     case 'scared': {
-      eyeWide(0)
-      eyeWide(7)
-      // Worried brows sit over the inner corners of the eyes.
-      for (const dx of [2, 3, 6, 7]) set(dx, -1, 'K')
+      eyeSqueezed(1, true)
+      eyeSqueezed(7, false)
+      for (const dx of [1, 2, 7, 8]) set(dx, -1, 'K')
       // Wobbly mouth.
       set(3, 3, 'M')
       set(4, 2, 'M')

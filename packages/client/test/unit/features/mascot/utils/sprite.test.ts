@@ -67,12 +67,17 @@ describe('Bitspresso pixel parts', () => {
 })
 
 describe('Bitspresso scared mood', () => {
-  it('opens both eyes wide, three pixels across', () => {
+  it('squeezes the eyes shut into > <', () => {
     for (const form of MASCOT_FORMS) {
-      const widths = stampFace(form, 'scared').map(
-        (row) => row.filter((ch) => ch === 'E').length,
-      )
-      expect(Math.max(...widths)).toBe(6)
+      const eyes = stampFace(form, 'scared')
+        .map((row) => row.flatMap((ch, x) => (ch === 'E' ? [x] : [])))
+        .filter((xs) => xs.length > 0)
+      const left = Math.min(...eyes.flat())
+      expect(eyes.map((xs) => xs.map((x) => x - left))).toEqual([
+        [0, 7],
+        [1, 6],
+        [0, 7],
+      ])
     }
   })
 

@@ -56,12 +56,12 @@ describe('HeroHeader', () => {
     const card = mascot.parentElement as HTMLElement
 
     await user.hover(card)
-    expect(screen.getByText('Eek!')).toBeTruthy()
+    expect(screen.getByText("Don't drink me plz!")).toBeTruthy()
     expect(screen.getByRole('img', { name: /house mug, scared/ })).toBeTruthy()
     expect(card.className.split(' ')).toContain('animate-shiver')
 
     await user.unhover(card)
-    expect(screen.queryByText('Eek!')).toBeNull()
+    expect(screen.queryByText("Don't drink me plz!")).toBeNull()
     expect(screen.getByRole('img', { name: /house mug, happy/ })).toBeTruthy()
     expect(card.className.split(' ')).not.toContain('animate-shiver')
   })

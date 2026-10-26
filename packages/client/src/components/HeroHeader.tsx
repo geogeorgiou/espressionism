@@ -27,7 +27,7 @@ const HIGHLIGHTS = [
 export function HeroHeader() {
   // The speech bubble says the active theme's sticker line.
   const { palette } = useTheme()
-  // Hovering the card scares Bitspresso: wide eyes, sweat, a shiver, "Eek!".
+  // Hovering the card scares Bitspresso: > < eyes, sweat, a shiver and a plea.
   const [scared, setScared] = useState(false)
 
   return (
@@ -100,7 +100,7 @@ export function HeroHeader() {
               )}
             >
               <p className="self-end bg-screen-foreground px-2.5 py-1.5 font-pixel text-sm text-screen">
-                {scared ? 'Eek!' : stickerLine(palette)}
+                {scared ? "Don't drink me plz!" : stickerLine(palette)}
               </p>
               <Bitspresso
                 form="mug"
