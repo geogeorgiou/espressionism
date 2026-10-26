@@ -4,7 +4,6 @@
   "installCommand": "corepack enable pnpm && pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build",
   "outputDirectory": "packages/client/dist/client",
-  "cleanUrls": true,
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -16,5 +15,5 @@
       ]
     }
   ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/_shell.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
