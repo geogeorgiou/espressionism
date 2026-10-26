@@ -1,0 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen&family=Karla:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Diner palette from the Bitspresso mascot lab, mapped onto shadcn's token names
+ * so every shadcn/ui component picks it up. Light by default; dark follows the
+ * OS (`prefers-color-scheme`) or a `.dark` class on <html>.
+ */
+:root {
+  color-scheme: light;
+  --radius: 0.375rem;
+
+  --background: #e7eceb;
+  --foreground: #231d1a;
+  --card: #f7f9f8;
+  --card-foreground: #231d1a;
+  --popover: #f7f9f8;
+  --popover-foreground: #231d1a;
+  --primary: #0f6f68;
+  --primary-foreground: #ffffff;
+  --secondary: #f4ead8;
+  --secondary-foreground: #231d1a;
+  --muted: #dde3e1;
+  --muted-foreground: #5d6662;
+  --accent: #f4ead8;
+  --accent-foreground: #231d1a;
+  --destructive: #b3361f;
+  --border: #c9d2cf;
+  --input: #8f9a96;
+  --ring: #0f6f68;
+
+  /* Mascot + brand extras */
+  --brew: #6b3b22;
+  --screen: #2a2220;
+  --screen-foreground: #f4ead8;
+
+  /* Charts: café (to go) vs machine (for here) */
+  --chart-cafe: #d8473a;
+  --chart-home: #0f6f68;
+  --chart-grid: #c9d2cf;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+    --background: #171412;
+    --foreground: #efe6dc;
+    --card: #211c1a;
+    --card-foreground: #efe6dc;
+    --popover: #211c1a;
+    --popover-foreground: #efe6dc;
+    --primary: #4fc1b4;
+    --primary-foreground: #0f1a18;
+    --secondary: #2c2522;
+    --secondary-foreground: #efe6dc;
+    --muted: #2c2522;
+    --muted-foreground: #a99d92;
+    --accent: #2c2522;
+    --accent-foreground: #efe6dc;
+    --destructive: #f4a291;
+    --border: #3a322e;
+    --input: #6b605a;
+    --ring: #4fc1b4;
+    --brew: #d9a066;
+    --screen: #0f0c0b;
+    --chart-cafe: #f27b6b;
+    --chart-home: #4fc1b4;
+    --chart-grid: #3a322e;
+  }
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #171412;
+  --foreground: #efe6dc;
+  --card: #211c1a;
+  --card-foreground: #efe6dc;
+  --popover: #211c1a;
+  --popover-foreground: #efe6dc;
+  --primary: #4fc1b4;
+  --primary-foreground: #0f1a18;
+  --secondary: #2c2522;
+  --secondary-foreground: #efe6dc;
+  --muted: #2c2522;
+  --muted-foreground: #a99d92;
+  --accent: #2c2522;
+  --accent-foreground: #efe6dc;
+  --destructive: #f4a291;
+  --border: #3a322e;
+  --input: #6b605a;
+  --ring: #4fc1b4;
+  --brew: #d9a066;
+  --screen: #0f0c0b;
+  --chart-cafe: #f27b6b;
+  --chart-home: #4fc1b4;
+  --chart-grid: #3a322e;
+}
+
+@theme inline {
+  --font-sans: 'Karla', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-pixel: 'Silkscreen', 'Courier New', monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brew: var(--brew);
+  --color-screen: var(--screen);
+  --color-screen-foreground: var(--screen-foreground);
+  --color-chart-cafe: var(--chart-cafe);
+  --color-chart-home: var(--chart-home);
+
+  /* Hard offset shadow: the 8-bit "drop shadow" */
+  --shadow-pixel: 4px 4px 0 var(--brew);
+  --shadow-pixel-lg: 8px 8px 0 var(--brew);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+/* react-charts draws text in SVG; give it the page font and muted ink. */
+.coffee-chart text {
+  font-family: var(--font-sans);
+  fill: var(--muted-foreground);
+}

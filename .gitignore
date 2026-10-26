@@ -1,0 +1,30 @@
+node_modules/
+*.tsbuildinfo
+
+# production
+**/build
+dist/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+pnpm-debug.log*
+
+# testing
+**/coverage
+
+# local env files
+.env
+
+# TanStack Start / Nitro build artifacts
+.nitro
+.tanstack
+.vinxi
+.wrangler
+.output
+
+# AI artifacts
+.claude/settings.local.json

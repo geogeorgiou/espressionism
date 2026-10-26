@@ -1,0 +1,36 @@
+{
+  "name": "espressionism",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Espressionism: find out when an espresso machine pays for itself. Compare your café habit with brewing at home: break-even, yearly spend and the real cost per cup.",
+  "keywords": [
+    "break-even",
+    "calculator",
+    "coffee",
+    "espresso",
+    "pixel-art",
+    "tanstack",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "Georgios Georgiou",
+  "scripts": {
+    "dev": "vp run -r --parallel dev",
+    "dev:client": "vp run --filter @espressionism/client dev",
+    "build": "vp run -r --cache build",
+    "type-check": "vp check --no-fmt --no-lint",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
+    "check": "vp check",
+    "test:unit": "vp run -r test:unit",
+    "prepare": "vp config --no-agent"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.3",
+    "@commitlint/config-conventional": "^20.5.3",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "packageManager": "pnpm@10.28.0"
+}
