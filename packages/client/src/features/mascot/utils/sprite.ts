@@ -35,11 +35,17 @@ export type MascotForm = (typeof MASCOT_FORMS)[number]
 export type MascotMood = (typeof MASCOT_MOODS)[number]
 export type MascotFlavor = (typeof MASCOT_FLAVORS)[number]
 
+/** Which part of the drawing a pixel belongs to, so renderers can animate it. */
+export type MascotPart = 'body' | 'steam' | 'z'
+
 export interface MascotPixel {
   x: number
   y: number
   fill: string
   opacity: number
+  part: MascotPart
+  /** For steam: which wisp (0 = leftmost) the pixel belongs to. */
+  wisp?: number
 }
 
 interface FormSpec {
@@ -244,8 +250,15 @@ export function buildMascot(
     ...FLAVOR_COLORS[flavor],
   }
   const pixels = new Map<string, MascotPixel>()
-  const put = (x: number, y: number, fill: string, opacity = 1) => {
-    pixels.set(`${x},${y}`, { x, y, fill, opacity })
+  const put = (
+    x: number,
+    y: number,
+    fill: string,
+    opacity = 1,
+    part: MascotPart = 'body',
+    wisp?: number,
+  ) => {
+    pixels.set(`${x},${y}`, { x, y, fill, opacity, part, wisp })
   }
 
   stampFace(form, mood).forEach((row, y) => {
@@ -259,14 +272,14 @@ export function buildMascot(
     const z = ['VVV', '.V.', 'VVV']
     z.forEach((row, y) => {
       row.split('').forEach((ch, x) => {
-        if (ch === 'V') put(15 + x, 1 + y, colors.V, 0.85)
+        if (ch === 'V') put(15 + x, 1 + y, colors.V, 0.85, 'z')
       })
     })
   } else {
     FORMS[form].steam.forEach((baseX, i) => {
       for (let r = 0; r < 4; r++) {
         const x = baseX + STEAM_WAVE[(r + i) % STEAM_WAVE.length]
-        put(x, 1 + r, colors.V, 0.2 + r * 0.18)
+        put(x, 1 + r, colors.V, 0.2 + r * 0.18, 'steam', i)
       }
     })
   }

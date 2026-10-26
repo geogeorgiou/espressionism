@@ -48,12 +48,12 @@ export function VerdictPanel({
       className="flex flex-col gap-5 rounded-lg border-4 border-foreground bg-screen p-5 text-screen-foreground shadow-pixel-lg"
     >
       <div className="flex items-end justify-center gap-4 sm:gap-8">
-        <figure className="flex flex-col items-center gap-2">
+        <figure className="group flex flex-col items-center gap-2">
           <Bitspresso
             form="togo"
             mood={moods.togo}
             flavor={flavor}
-            className="size-28 sm:size-36"
+            className="size-28 group-hover:animate-hop motion-reduce:group-hover:animate-none sm:size-36"
           />
           <figcaption className="font-pixel text-xs tracking-wide opacity-80">
             To go
@@ -62,12 +62,12 @@ export function VerdictPanel({
         <span aria-hidden className="pb-10 font-pixel text-lg opacity-60">
           vs
         </span>
-        <figure className="flex flex-col items-center gap-2">
+        <figure className="group flex flex-col items-center gap-2">
           <Bitspresso
             form="mug"
             mood={moods.mug}
             flavor={flavor}
-            className="size-28 sm:size-36"
+            className="size-28 group-hover:animate-hop motion-reduce:group-hover:animate-none sm:size-36"
           />
           <figcaption className="font-pixel text-xs tracking-wide opacity-80">
             For here

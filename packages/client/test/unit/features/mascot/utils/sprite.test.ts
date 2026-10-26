@@ -49,3 +49,19 @@ describe('Bitspresso sprite', () => {
     expect(sleepy.every((p) => p.x >= 15)).toBe(true)
   })
 })
+
+describe('Bitspresso pixel parts', () => {
+  it('tags steam by wisp so it can be animated', () => {
+    const steam = buildMascot('mug', 'idle', 'house').filter(
+      (p) => p.part === 'steam',
+    )
+    expect(new Set(steam.map((p) => p.wisp))).toEqual(new Set([0, 1, 2]))
+    expect(steam.every((p) => p.y < 5)).toBe(true)
+  })
+
+  it('tags the sleepy Z and leaves no steam', () => {
+    const pixels = buildMascot('togo', 'sleepy', 'latte')
+    expect(pixels.some((p) => p.part === 'z')).toBe(true)
+    expect(pixels.some((p) => p.part === 'steam')).toBe(false)
+  })
+})

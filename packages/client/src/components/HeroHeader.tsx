@@ -88,6 +88,7 @@ export function HeroHeader() {
                 form="mug"
                 mood="happy"
                 flavor="house"
+                animated
                 className="size-72 xl:size-80"
               />
               <figcaption className="font-pixel text-2xl">

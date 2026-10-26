@@ -106,6 +106,10 @@ Always use **TanStack Form** through the app hook in `features/common/form/form.
 
 `features/mascot/utils/sprite.ts` holds the two forms as 20×20 text sprites (one letter per pixel). Both forms share the same face kit, stamped at the same spot, and a flavor band right under the face. `<Bitspresso form mood flavor className="size-28" />` renders it as crisp SVG rects. To add a mood, add a case in `stampFace`; to add a flavor, add an entry to `MASCOT_FLAVORS` and `FLAVOR_COLORS`.
 
+Every pixel carries a `part` (`body`, `steam`, `z`; steam also has a `wisp` index), so the renderer can animate pieces of the drawing. `animated` makes the steam drift up wisp by wisp (`animate-steam`) and the sleepy Z bob (`animate-snooze`); the hero mug uses it. `animate-hop` is a one-shot bounce used on hover for the verdict mascots. All motion lives in the `@theme` block in `styles.css`, moves in `steps()` to stay pixel-crisp, and must be paired with `motion-reduce:animate-none`.
+
+Favicons (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192/512.png`) are the header logo: the house-flavor mug winking on the dark screen tile. Regenerate them from `buildMascot('mug', 'wink', 'house')` if the sprite changes.
+
 ### Exports
 
 Named exports only (`export function Foo`), enforced by `import/no-default-export`. Default exports are allowed only where a tool requires them: `*.config.*` files and TanStack Start entry points (`src/client.tsx`, `src/server.ts`, `src/start.ts`). Routes already use the named `Route` export.
