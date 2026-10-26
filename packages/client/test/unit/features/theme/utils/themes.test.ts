@@ -8,7 +8,9 @@ import {
   applyTheme,
   initThemeBeforePaint,
   isThemeId,
+  resolvePalette,
   resolveScheme,
+  stickerLine,
 } from '@/features/theme/utils/themes'
 
 import { stubMatchMedia } from '../match-media'
@@ -77,5 +79,13 @@ describe('themes', () => {
     const root = document.documentElement
     expect(root.hasAttribute('data-theme')).toBe(false)
     expect(root.getAttribute('data-scheme')).toBe('dark')
+  })
+
+  it('resolves System to Diner or Night and finds the sticker line', () => {
+    expect(resolvePalette('system', false)).toBe('diner')
+    expect(resolvePalette('system', true)).toBe('night')
+    expect(resolvePalette('tomato', true)).toBe('tomato')
+    expect(stickerLine('tomato')).toBe('Refill!')
+    expect(stickerLine('night')).toBe('Five more minutes')
   })
 })

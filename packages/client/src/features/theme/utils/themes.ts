@@ -16,7 +16,7 @@ export interface ThemeOption {
   /** Fixed scheme, or null for "follow the OS". */
   scheme: ColorScheme | null
   /** Palette used for the switcher's preview (System previews Diner). */
-  preview: Exclude<ThemeId, 'system'>
+  preview: PaletteId
   /** Bitspresso's mood on the preview, as on the sticker. */
   mood: 'idle' | 'happy' | 'sleepy' | 'surprised'
 }
@@ -80,6 +80,19 @@ export function resolveScheme(
 ): ColorScheme {
   const fixed = THEMES.find((t) => t.id === theme)?.scheme
   return fixed ?? (systemDark ? 'dark' : 'light')
+}
+
+export type PaletteId = Exclude<ThemeId, 'system'>
+
+/** The palette actually on screen: System resolves to Diner or Night. */
+export function resolvePalette(theme: ThemeId, systemDark: boolean): PaletteId {
+  if (theme !== 'system') return theme
+  return systemDark ? 'night' : 'diner'
+}
+
+/** The sticker line for the palette on screen (used by the hero bubble). */
+export function stickerLine(palette: PaletteId): string {
+  return THEMES.find((t) => t.id === palette)?.description ?? ''
 }
 
 /** Sets `data-theme` (absent for system) and `data-scheme` on <html>. */

@@ -4,6 +4,8 @@ import { SectionLink } from '@/components/SectionLink'
 import { Button } from '@/components/ui/button'
 import { Bitspresso } from '@/features/mascot/components/Bitspresso'
 import { ThemeSwitcher } from '@/features/theme/components/ThemeSwitcher'
+import { useTheme } from '@/features/theme/hooks/use-theme'
+import { stickerLine } from '@/features/theme/utils/themes'
 
 const NAV_LINKS = [
   { section: 'calculator', label: 'Calculator' },
@@ -21,6 +23,9 @@ const HIGHLIGHTS = [
  * compact header in SiteHeader, so the calculator stays one scroll away.
  */
 export function HeroHeader() {
+  // The speech bubble says the active theme's sticker line.
+  const { palette } = useTheme()
+
   return (
     <header className="hidden flex-col lg:flex lg:min-h-[calc(100dvh-4rem)]">
       <div className="border-b-4 border-foreground bg-card">
@@ -84,7 +89,7 @@ export function HeroHeader() {
           <figure className="flex flex-[1_1_340px] justify-center">
             <div className="flex flex-col items-center gap-3 border-[6px] border-foreground bg-screen p-6 text-screen-foreground shadow-pixel-lg">
               <p className="self-end bg-screen-foreground px-2.5 py-1.5 font-pixel text-sm text-screen">
-                Refill!
+                {stickerLine(palette)}
               </p>
               <Bitspresso
                 form="mug"

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react'
 
-import type { ColorScheme, ThemeId } from '../utils/themes'
+import type { ColorScheme, PaletteId, ThemeId } from '../utils/themes'
 import {
   SYSTEM_DARK_QUERY,
   THEME_STORAGE_KEY,
   applyTheme,
   isThemeId,
+  resolvePalette,
   resolveScheme,
 } from '../utils/themes'
 
@@ -48,6 +49,8 @@ function subscribe(onChange: () => void) {
 export interface ThemeState {
   theme: ThemeId
   scheme: ColorScheme
+  /** The palette on screen (System resolved to Diner or Night). */
+  palette: PaletteId
   isDark: boolean
   setTheme: (theme: ThemeId) => void
 }
@@ -86,5 +89,11 @@ export function useTheme(): ThemeState {
     notify()
   }, [])
 
-  return { theme, scheme, isDark: scheme === 'dark', setTheme }
+  return {
+    theme,
+    scheme,
+    palette: resolvePalette(theme, systemDark),
+    isDark: scheme === 'dark',
+    setTheme,
+  }
 }

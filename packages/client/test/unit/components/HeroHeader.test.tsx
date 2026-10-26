@@ -40,4 +40,11 @@ describe('HeroHeader', () => {
       expect.arrayContaining(['hidden', 'lg:flex']),
     )
   })
+
+  it("speaks the active theme's sticker line", async () => {
+    window.localStorage.setItem('espressionism-theme', 'mint')
+    renderHero()
+    expect(await screen.findByText('Is that decaf?!')).toBeTruthy()
+    window.localStorage.clear()
+  })
 })
