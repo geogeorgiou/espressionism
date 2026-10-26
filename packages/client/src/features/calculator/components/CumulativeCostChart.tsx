@@ -3,7 +3,7 @@ import type { AxisOptions, UserSerie } from 'react-charts'
 import { Chart } from 'react-charts'
 
 import { ChartCard } from '@/features/common/components/ChartCard'
-import { usePrefersDark } from '@/features/common/hooks/use-prefers-dark'
+import { useTheme } from '@/features/theme/hooks/use-theme'
 
 import type { CoffeeInputs, CumulativePoint } from '../utils/cost-model'
 import { cumulativeCosts } from '../utils/cost-model'
@@ -27,7 +27,7 @@ export function CumulativeCostChart({
   currency,
   breakEvenMonths,
 }: CumulativeCostChartProps) {
-  const dark = usePrefersDark()
+  const { isDark: dark } = useTheme()
   const points = useMemo(() => cumulativeCosts(inputs), [inputs])
   const last: CumulativePoint | undefined = points.at(-1)
 

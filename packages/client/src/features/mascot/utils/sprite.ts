@@ -7,6 +7,9 @@
  * spot, with the flavor color right under the face (a painted band on the mug,
  * a paper sleeve on the cup).
  *
+ * Body colors come from the active theme (see MUG_COLOR_VARS); the flavor
+ * band, coffee and foam come from the drink (FLAVOR_COLORS).
+ *
  * Legend:
  *   K outline · W body · H shine · S shade · B flavor band · N band shade
  *   C coffee · F foam · L lid · D lid rim · O saucer
@@ -35,11 +38,17 @@ export type MascotForm = (typeof MASCOT_FORMS)[number]
 export type MascotMood = (typeof MASCOT_MOODS)[number]
 export type MascotFlavor = (typeof MASCOT_FLAVORS)[number]
 
+/** Which part of the drawing a pixel belongs to, so renderers can animate it. */
+export type MascotPart = 'body' | 'steam' | 'z'
+
 export interface MascotPixel {
   x: number
   y: number
   fill: string
   opacity: number
+  part: MascotPart
+  /** For steam: which wisp (0 = leftmost) the pixel belongs to. */
+  wisp?: number
 }
 
 interface FormSpec {
@@ -95,58 +104,66 @@ const FORMS: Record<MascotForm, FormSpec> = {
   },
 }
 
-const BASE_COLORS: Record<string, string> = {
-  K: '#2a1810',
-  W: '#f4ead8',
-  H: '#ffffff',
-  S: '#cdb592',
-  L: '#ffffff',
-  D: '#d9cdb8',
-  O: '#e2d3b8',
-  E: '#2a1810',
-  M: '#2a1810',
-  R: '#e0574f',
-  V: '#ffffff',
+/**
+ * Mug colors follow the active color theme. Each letter reads a CSS custom
+ * property (set per theme in styles.css) and falls back to the Diner mug, so
+ * the sprite still renders outside a themed page (favicons, tests).
+ */
+export const MUG_COLOR_VARS: Record<string, { name: string; diner: string }> = {
+  K: { name: '--mug-outline', diner: '#2a1810' },
+  W: { name: '--mug-body', diner: '#f4ead8' },
+  H: { name: '--mug-shine', diner: '#ffffff' },
+  S: { name: '--mug-shade', diner: '#cdb592' },
+  L: { name: '--mug-lid', diner: '#ffffff' },
+  D: { name: '--mug-lid-rim', diner: '#d9cdb8' },
+  O: { name: '--mug-saucer', diner: '#e2d3b8' },
+  E: { name: '--mug-eyes', diner: '#2a1810' },
+  M: { name: '--mug-mouth', diner: '#2a1810' },
+  R: { name: '--mug-tongue', diner: '#e0574f' },
+  P: { name: '--mug-cheeks', diner: '#f08c8c' },
+  V: { name: '--mug-steam', diner: '#ffffff' },
 }
+
+const BASE_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(MUG_COLOR_VARS).map(([letter, { name, diner }]) => [
+    letter,
+    `var(${name}, ${diner})`,
+  ]),
+)
 
 export const FLAVOR_COLORS: Record<
   MascotFlavor,
-  { B: string; N: string; C: string; F: string; P: string }
+  { B: string; N: string; C: string; F: string }
 > = {
   house: {
     B: '#0f6f68',
     N: '#0a4f4a',
     C: '#3a1f12',
     F: '#8a5232',
-    P: '#f08c8c',
   },
   latte: {
     B: '#d6a46a',
     N: '#a8774f',
     C: '#b07a4a',
     F: '#fbf3e4',
-    P: '#f08c8c',
   },
   mocha: {
     B: '#6b3b22',
     N: '#4a2614',
     C: '#4a2614',
     F: '#d6a46a',
-    P: '#f08c8c',
   },
   matcha: {
     B: '#7fae5a',
     N: '#5a8a3e',
     C: '#8fbf6a',
     F: '#d9ecc4',
-    P: '#f2a1a1',
   },
   cherry: {
     B: '#d8473a',
     N: '#a3302a',
     C: '#5b3420',
     F: '#d9a066',
-    P: '#f7b0a0',
   },
 }
 
@@ -244,8 +261,15 @@ export function buildMascot(
     ...FLAVOR_COLORS[flavor],
   }
   const pixels = new Map<string, MascotPixel>()
-  const put = (x: number, y: number, fill: string, opacity = 1) => {
-    pixels.set(`${x},${y}`, { x, y, fill, opacity })
+  const put = (
+    x: number,
+    y: number,
+    fill: string,
+    opacity = 1,
+    part: MascotPart = 'body',
+    wisp?: number,
+  ) => {
+    pixels.set(`${x},${y}`, { x, y, fill, opacity, part, wisp })
   }
 
   stampFace(form, mood).forEach((row, y) => {
@@ -259,14 +283,14 @@ export function buildMascot(
     const z = ['VVV', '.V.', 'VVV']
     z.forEach((row, y) => {
       row.split('').forEach((ch, x) => {
-        if (ch === 'V') put(15 + x, 1 + y, colors.V, 0.85)
+        if (ch === 'V') put(15 + x, 1 + y, colors.V, 0.85, 'z')
       })
     })
   } else {
     FORMS[form].steam.forEach((baseX, i) => {
       for (let r = 0; r < 4; r++) {
         const x = baseX + STEAM_WAVE[(r + i) % STEAM_WAVE.length]
-        put(x, 1 + r, colors.V, 0.2 + r * 0.18)
+        put(x, 1 + r, colors.V, 0.2 + r * 0.18, 'steam', i)
       }
     })
   }

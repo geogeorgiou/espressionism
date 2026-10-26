@@ -44,7 +44,8 @@ pnpm exec vp test run test/unit/features/calculator/utils/cost-model.test.ts
 src/
 ├── components/
 │   ├── ui/              — shadcn/ui primitives
-│   ├── SiteHeader.tsx   — app shell, not owned by a domain
+│   ├── SiteHeader.tsx   — app shell, not owned by a domain: compact header below `lg`
+│   ├── HeroHeader.tsx   — landing hero (nav, headline, mascot) from `lg` up
 │   └── SiteFooter.tsx
 ├── features/
 │   ├── calculator/
@@ -55,17 +56,20 @@ src/
 │   ├── mascot/
 │   │   ├── components/  — Bitspresso (SVG pixel renderer)
 │   │   └── utils/       — sprite (text sprites, faces, flavors)
+│   ├── theme/
+│   │   ├── components/  — ThemeSwitcher (dropdown in both headers)
+│   │   ├── hooks/       — useTheme (theme, isDark, setTheme)
+│   │   └── utils/       — themes list, applyTheme, pre-paint init script
 │   └── common/
 │       ├── components/  — ChartCard
-│       ├── form/        — TanStack Form app hook + field components
-│       └── hooks/       — usePrefersDark
+│       └── form/        — TanStack Form app hook + field components
 ├── lib/utils.ts         — shadcn `cn()`
 └── routes/              — thin TanStack Router entry points only
 ```
 
 ### Thin-routes rule
 
-Route files (`src/routes/*.tsx`) contain **only** `createFileRoute` with `validateSearch`, `loaderDeps`, `loader`, `pendingComponent`, `errorComponent` and `component`. No component definitions, no business logic. Pages import `Route` from their route file for `useSearch` / `useNavigate`.
+Route files (`src/routes/*.tsx`) contain **only** `createFileRoute` with `validateSearch`, `beforeLoad` (redirects), `loaderDeps`, `loader`, `pendingComponent`, `errorComponent` and `component`. No component definitions, no business logic. Unknown paths hit the catch-all `routes/$.tsx`, which redirects to `/` instead of showing a Not Found page. Pages import `Route` from their route file for `useSearch` / `useNavigate`.
 
 ### Business logic stays pure
 
@@ -75,10 +79,10 @@ All money math lives in `features/calculator/utils/cost-model.ts` as pure functi
 
 - Tailwind utility classes only. No inline `style={{}}` except genuinely dynamic computed values.
 - Use `clsx` for conditional class names in app code; shadcn primitives in `components/ui/` use `cn()` (clsx + tailwind-merge).
-- Design tokens live in `src/styles.css` under shadcn's names (`--background`, `--primary`, …) plus brand extras: `--brew`, `--screen`, `--chart-cafe`, `--chart-home`. Light by default; dark via `prefers-color-scheme` or a `.dark` class.
+- Design tokens live in `src/styles.css` under shadcn's names (`--background`, `--primary`, …) plus brand extras: `--brew`, `--crema`, `--screen`, `--chart-cafe`, `--chart-home`. Themes are `[data-theme='…']` blocks over the same tokens, one per sticker on the Bitspresso sticker sheet: `diner` (default light), `tomato`, `night` (default dark) and `mint`. With no `data-theme` ("System") the page follows `prefers-color-scheme` between diner and night. Each block also sets the `--mug-*` properties that recolor Bitspresso's body (see `MUG_COLOR_VARS` in `sprite.ts`); the flavor band stays the drink's color. `data-scheme` (`light`/`dark`) on <html> drives the `dark:` variant, and `data-theme` on any element scopes a palette to it. To add a theme: add its CSS block (UI tokens + `--mug-*`), then an entry in `THEMES` (`features/theme/utils/themes.ts`).
 - Fonts: `font-pixel` (Silkscreen) for headings and big numbers, `font-sans` (Karla) for body.
 - Hard pixel shadows: `shadow-pixel`, `shadow-pixel-lg`.
-- Mobile first: design at 390px wide, then add `sm:` / `lg:` layouts. No horizontal scroll at phone width; touch targets at least 44px (`h-11`).
+- Mobile first: design at 390px wide, then add `sm:` / `lg:` layouts. Below `lg` the page is one stacked column with a compact header; from `lg` (laptops) up it opens with the full-height `HeroHeader`, then the two-column calculator. No horizontal scroll at phone width; touch targets at least 44px (`h-11`).
 
 ### shadcn/ui
 
@@ -98,12 +102,16 @@ Always use **TanStack Form** through the app hook in `features/common/form/form.
 
 - Wrap every chart in `ChartCard` (`features/common/components/ChartCard.tsx`). It gives the chart a fixed-height box (react-charts measures its parent), renders it only in the browser (`ClientOnly`), and adds a legend plus a screen-reader summary.
 - Memoize `data`, `primaryAxis` and `secondaryAxes` with `useMemo`; react-charts expects stable options.
-- Colors come from CSS tokens via `defaultColors` (see `chart-theme.ts`); pass `dark={usePrefersDark()}`.
+- Colors come from CSS tokens via `defaultColors` (see `chart-theme.ts`); pass `dark` from `useTheme().isDark`.
 - react-charts 3 is a beta; keep its usage inside the `*Chart.tsx` components so it can be swapped.
 
 ### Mascot: Bitspresso
 
 `features/mascot/utils/sprite.ts` holds the two forms as 20×20 text sprites (one letter per pixel). Both forms share the same face kit, stamped at the same spot, and a flavor band right under the face. `<Bitspresso form mood flavor className="size-28" />` renders it as crisp SVG rects. To add a mood, add a case in `stampFace`; to add a flavor, add an entry to `MASCOT_FLAVORS` and `FLAVOR_COLORS`.
+
+Every pixel carries a `part` (`body`, `steam`, `z`; steam also has a `wisp` index), so the renderer can animate pieces of the drawing. `animated` makes the steam drift up wisp by wisp (`animate-steam`) and the sleepy Z bob (`animate-snooze`); the hero mug uses it. `animate-hop` is a one-shot bounce used on hover for the verdict mascots. All motion lives in the `@theme` block in `styles.css`, moves in `steps()` to stay pixel-crisp, and must be paired with `motion-reduce:animate-none`.
+
+Favicons (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192/512.png`) are the header logo: the house-flavor mug winking on the dark screen tile. Regenerate them from `buildMascot('mug', 'wink', 'house')` if the sprite changes, resolving each `var(--mug-…, #hex)` fill to its Diner fallback.
 
 ### Exports
 
@@ -125,4 +133,5 @@ test/unit/features/mascot/utils/sprite.test.ts
 
 - Use `@testing-library/user-event` (`userEvent.setup()`) for every interaction; never `fireEvent`.
 - Use `waitFor` for state that updates after an interaction (TanStack Form validates after change/blur).
+- `test/setup.ts` stubs `window.matchMedia` (light); theme tests override it with `stubMatchMedia` from `test/unit/features/theme/match-media.ts`.
 - jest-dom matchers are not installed; assert on DOM properties directly (`input.valueAsNumber`, `el.textContent`, `el.getAttribute(...)`).

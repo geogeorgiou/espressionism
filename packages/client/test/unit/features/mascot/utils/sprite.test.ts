@@ -49,3 +49,36 @@ describe('Bitspresso sprite', () => {
     expect(sleepy.every((p) => p.x >= 15)).toBe(true)
   })
 })
+
+describe('Bitspresso pixel parts', () => {
+  it('tags steam by wisp so it can be animated', () => {
+    const steam = buildMascot('mug', 'idle', 'house').filter(
+      (p) => p.part === 'steam',
+    )
+    expect(new Set(steam.map((p) => p.wisp))).toEqual(new Set([0, 1, 2]))
+    expect(steam.every((p) => p.y < 5)).toBe(true)
+  })
+
+  it('tags the sleepy Z and leaves no steam', () => {
+    const pixels = buildMascot('togo', 'sleepy', 'latte')
+    expect(pixels.some((p) => p.part === 'z')).toBe(true)
+    expect(pixels.some((p) => p.part === 'steam')).toBe(false)
+  })
+})
+
+describe('Bitspresso theme colors', () => {
+  it('reads body colors from the theme, with Diner fallbacks', () => {
+    const fills = new Set(
+      buildMascot('mug', 'idle', 'house').map((p) => p.fill),
+    )
+    expect(fills).toContain('var(--mug-body, #f4ead8)')
+    expect(fills).toContain('var(--mug-outline, #2a1810)')
+  })
+
+  it('keeps the flavor band as a fixed drink color', () => {
+    const fills = new Set(
+      buildMascot('togo', 'idle', 'cherry').map((p) => p.fill),
+    )
+    expect(fills).toContain(FLAVOR_COLORS.cherry.B)
+  })
+})

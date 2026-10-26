@@ -2,14 +2,27 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
+/* `dark:` follows the resolved color scheme of the active theme. */
+@custom-variant dark (&:where([data-scheme='dark'], [data-scheme='dark'] *));
 
 /*
- * Diner palette from the Bitspresso mascot lab, mapped onto shadcn's token names
- * so every shadcn/ui component picks it up. Light by default; dark follows the
- * OS (`prefers-color-scheme`) or a `.dark` class on <html>.
+ * Themes, straight from the Bitspresso sticker sheet: each sticker's mug
+ * colors and screen color become a palette over shadcn's token names, and
+ * the --mug-* properties recolor Bitspresso himself.
+ *
+ *   diner   light  "Fresh pot's on."    cream mug, espresso-dark screen
+ *   tomato  light  "Refill!"            tomato mug, teal screen
+ *   night   dark   "Five more minutes"  night-blue mug, navy screen
+ *   mint    light  "Is that decaf?!"    mint mug, espresso-dark screen
+ *
+ * `data-theme` on <html> picks one. With no attribute ("System") the page
+ * follows prefers-color-scheme: Diner by day, Night after dark. ThemeSwitcher
+ * and the pre-paint script in __root keep `data-theme` / `data-scheme` in sync.
+ * A `data-theme` on any element scopes a palette to it (the switcher uses
+ * that to preview each theme's mug).
  */
-:root {
+:root,
+[data-theme='diner'] {
   color-scheme: light;
   --radius: 0.375rem;
 
@@ -32,71 +45,224 @@
   --input: #8f9a96;
   --ring: #0f6f68;
 
-  /* Mascot + brand extras */
+  /* Brand extras: pixel shadow + labels, the mascot's screen */
   --brew: #6b3b22;
   --screen: #2a2220;
   --screen-foreground: #f4ead8;
+  --crema: #d9a066;
 
   /* Charts: café (to go) vs machine (for here) */
   --chart-cafe: #d8473a;
   --chart-home: #0f6f68;
   --chart-grid: #c9d2cf;
+
+  /* Bitspresso's mug (see MUG_COLOR_VARS in sprite.ts) */
+  --mug-outline: #2a1810;
+  --mug-body: #f4ead8;
+  --mug-shine: #ffffff;
+  --mug-shade: #cdb592;
+  --mug-lid: #ffffff;
+  --mug-lid-rim: #d9cdb8;
+  --mug-saucer: #e2d3b8;
+  --mug-eyes: #2a1810;
+  --mug-mouth: #2a1810;
+  --mug-tongue: #e0574f;
+  --mug-cheeks: #f08c8c;
+  --mug-steam: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not(.light) {
+  :root:not([data-theme]) {
     color-scheme: dark;
-    --background: #171412;
-    --foreground: #efe6dc;
-    --card: #211c1a;
-    --card-foreground: #efe6dc;
-    --popover: #211c1a;
-    --popover-foreground: #efe6dc;
-    --primary: #4fc1b4;
-    --primary-foreground: #0f1a18;
-    --secondary: #2c2522;
-    --secondary-foreground: #efe6dc;
-    --muted: #2c2522;
-    --muted-foreground: #a99d92;
-    --accent: #2c2522;
-    --accent-foreground: #efe6dc;
-    --destructive: #f4a291;
-    --border: #3a322e;
-    --input: #6b605a;
-    --ring: #4fc1b4;
-    --brew: #d9a066;
-    --screen: #0f0c0b;
-    --chart-cafe: #f27b6b;
-    --chart-home: #4fc1b4;
-    --chart-grid: #3a322e;
+
+    --background: #0f1626;
+    --foreground: #fdf6e8;
+    --card: #1b2236;
+    --card-foreground: #fdf6e8;
+    --popover: #1b2236;
+    --popover-foreground: #fdf6e8;
+    --primary: #6d8fc2;
+    --primary-foreground: #0f1626;
+    --secondary: #2a4166;
+    --secondary-foreground: #fdf6e8;
+    --muted: #2a4166;
+    --muted-foreground: #d9dce4;
+    --accent: #2a4166;
+    --accent-foreground: #fdf6e8;
+    --destructive: #e48aa0;
+    --border: #2a4166;
+    --input: #6d8fc2;
+    --ring: #6d8fc2;
+
+    /* Brand extras: pixel shadow + labels, the mascot's screen */
+    --brew: #e48aa0;
+    --screen: #1b2236;
+    --screen-foreground: #fdf6e8;
+    --crema: #b07a4a;
+
+    /* Charts: café (to go) vs machine (for here) */
+    --chart-cafe: #e48aa0;
+    --chart-home: #6d8fc2;
+    --chart-grid: #2a4166;
+
+    /* Bitspresso's mug (see MUG_COLOR_VARS in sprite.ts) */
+    --mug-outline: #0f1626;
+    --mug-body: #3b5b8c;
+    --mug-shine: #6d8fc2;
+    --mug-shade: #2a4166;
+    --mug-lid: #d9dce4;
+    --mug-lid-rim: #6d8fc2;
+    --mug-saucer: #d9dce4;
+    --mug-eyes: #fdf6e8;
+    --mug-mouth: #fdf6e8;
+    --mug-tongue: #e48aa0;
+    --mug-cheeks: #e48aa0;
+    --mug-steam: #ffffff;
   }
 }
 
-.dark {
+[data-theme='tomato'] {
+  color-scheme: light;
+
+  --background: #f2e4cc;
+  --foreground: #2b0f0c;
+  --card: #ffffff;
+  --card-foreground: #2b0f0c;
+  --popover: #ffffff;
+  --popover-foreground: #2b0f0c;
+  --primary: #a3302a;
+  --primary-foreground: #ffffff;
+  --secondary: #ffd1c4;
+  --secondary-foreground: #2b0f0c;
+  --muted: #ffd1c4;
+  --muted-foreground: #4a2614;
+  --accent: #ffd1c4;
+  --accent-foreground: #2b0f0c;
+  --destructive: #a3302a;
+  --border: #f7b0a0;
+  --input: #d8473a;
+  --ring: #d8473a;
+
+  /* Brand extras: pixel shadow + labels, the mascot's screen */
+  --brew: #a3302a;
+  --screen: #0f6f68;
+  --screen-foreground: #ffffff;
+  --crema: #d9a066;
+
+  /* Charts: café (to go) vs machine (for here) */
+  --chart-cafe: #d8473a;
+  --chart-home: #0f6f68;
+  --chart-grid: #f7b0a0;
+
+  /* Bitspresso's mug (see MUG_COLOR_VARS in sprite.ts) */
+  --mug-outline: #2b0f0c;
+  --mug-body: #d8473a;
+  --mug-shine: #f27b6b;
+  --mug-shade: #a3302a;
+  --mug-lid: #f2e4cc;
+  --mug-lid-rim: #f7b0a0;
+  --mug-saucer: #f2e4cc;
+  --mug-eyes: #2b0f0c;
+  --mug-mouth: #2b0f0c;
+  --mug-tongue: #ffd1c4;
+  --mug-cheeks: #f7b0a0;
+  --mug-steam: #ffffff;
+}
+
+[data-theme='night'] {
   color-scheme: dark;
-  --background: #171412;
-  --foreground: #efe6dc;
-  --card: #211c1a;
-  --card-foreground: #efe6dc;
-  --popover: #211c1a;
-  --popover-foreground: #efe6dc;
-  --primary: #4fc1b4;
-  --primary-foreground: #0f1a18;
-  --secondary: #2c2522;
-  --secondary-foreground: #efe6dc;
-  --muted: #2c2522;
-  --muted-foreground: #a99d92;
-  --accent: #2c2522;
-  --accent-foreground: #efe6dc;
-  --destructive: #f4a291;
-  --border: #3a322e;
-  --input: #6b605a;
-  --ring: #4fc1b4;
-  --brew: #d9a066;
-  --screen: #0f0c0b;
-  --chart-cafe: #f27b6b;
-  --chart-home: #4fc1b4;
-  --chart-grid: #3a322e;
+
+  --background: #0f1626;
+  --foreground: #fdf6e8;
+  --card: #1b2236;
+  --card-foreground: #fdf6e8;
+  --popover: #1b2236;
+  --popover-foreground: #fdf6e8;
+  --primary: #6d8fc2;
+  --primary-foreground: #0f1626;
+  --secondary: #2a4166;
+  --secondary-foreground: #fdf6e8;
+  --muted: #2a4166;
+  --muted-foreground: #d9dce4;
+  --accent: #2a4166;
+  --accent-foreground: #fdf6e8;
+  --destructive: #e48aa0;
+  --border: #2a4166;
+  --input: #6d8fc2;
+  --ring: #6d8fc2;
+
+  /* Brand extras: pixel shadow + labels, the mascot's screen */
+  --brew: #e48aa0;
+  --screen: #1b2236;
+  --screen-foreground: #fdf6e8;
+  --crema: #b07a4a;
+
+  /* Charts: café (to go) vs machine (for here) */
+  --chart-cafe: #e48aa0;
+  --chart-home: #6d8fc2;
+  --chart-grid: #2a4166;
+
+  /* Bitspresso's mug (see MUG_COLOR_VARS in sprite.ts) */
+  --mug-outline: #0f1626;
+  --mug-body: #3b5b8c;
+  --mug-shine: #6d8fc2;
+  --mug-shade: #2a4166;
+  --mug-lid: #d9dce4;
+  --mug-lid-rim: #6d8fc2;
+  --mug-saucer: #d9dce4;
+  --mug-eyes: #fdf6e8;
+  --mug-mouth: #fdf6e8;
+  --mug-tongue: #e48aa0;
+  --mug-cheeks: #e48aa0;
+  --mug-steam: #ffffff;
+}
+
+[data-theme='mint'] {
+  color-scheme: light;
+
+  --background: #e2f5ee;
+  --foreground: #22302b;
+  --card: #ffffff;
+  --card-foreground: #22302b;
+  --popover: #ffffff;
+  --popover-foreground: #22302b;
+  --primary: #7fbba4;
+  --primary-foreground: #22302b;
+  --secondary: #f1ece2;
+  --secondary-foreground: #22302b;
+  --muted: #f1ece2;
+  --muted-foreground: #4a5f56;
+  --accent: #a9dcc8;
+  --accent-foreground: #22302b;
+  --destructive: #b3361f;
+  --border: #a9dcc8;
+  --input: #7fbba4;
+  --ring: #7fbba4;
+
+  /* Brand extras: pixel shadow + labels, the mascot's screen */
+  --brew: #8a5f3c;
+  --screen: #2a2220;
+  --screen-foreground: #e2f5ee;
+  --crema: #a9dcc8;
+
+  /* Charts: café (to go) vs machine (for here) */
+  --chart-cafe: #e0574f;
+  --chart-home: #5e9a84;
+  --chart-grid: #a9dcc8;
+
+  /* Bitspresso's mug (see MUG_COLOR_VARS in sprite.ts) */
+  --mug-outline: #22302b;
+  --mug-body: #a9dcc8;
+  --mug-shine: #e2f5ee;
+  --mug-shade: #7fbba4;
+  --mug-lid: #f1ece2;
+  --mug-lid-rim: #7fbba4;
+  --mug-saucer: #f1ece2;
+  --mug-eyes: #22302b;
+  --mug-mouth: #22302b;
+  --mug-tongue: #e0574f;
+  --mug-cheeks: #f2a1a1;
+  --mug-steam: #ffffff;
 }
 
 @theme inline {
@@ -131,12 +297,69 @@
   --color-brew: var(--brew);
   --color-screen: var(--screen);
   --color-screen-foreground: var(--screen-foreground);
+  --color-crema: var(--crema);
   --color-chart-cafe: var(--chart-cafe);
   --color-chart-home: var(--chart-home);
 
   /* Hard offset shadow: the 8-bit "drop shadow" */
   --shadow-pixel: 4px 4px 0 var(--brew);
   --shadow-pixel-lg: 8px 8px 0 var(--brew);
+}
+
+/*
+ * Bitspresso motion. Pixel art moves in whole steps, so the timing functions
+ * use steps() rather than easing. Everything is opt-out under
+ * prefers-reduced-motion via `motion-reduce:animate-none`.
+ */
+@theme {
+  --animate-steam: steam-rise 2.1s steps(7, end) infinite;
+  --animate-snooze: snooze 2s steps(2, end) infinite;
+  --animate-hop: pixel-hop 0.6s ease-out 1;
+
+  @keyframes steam-rise {
+    0% {
+      transform: translate(0, 1px);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    50% {
+      transform: translate(1px, -1px);
+    }
+    85% {
+      opacity: 0.9;
+    }
+    100% {
+      transform: translate(0, -3px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes snooze {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(-1px, -1px);
+    }
+  }
+
+  @keyframes pixel-hop {
+    0%,
+    45%,
+    75%,
+    100% {
+      transform: translateY(0);
+    }
+    25% {
+      transform: translateY(-10px);
+    }
+    60% {
+      transform: translateY(-4px);
+    }
+  }
 }
 
 @layer base {
@@ -146,6 +369,12 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {

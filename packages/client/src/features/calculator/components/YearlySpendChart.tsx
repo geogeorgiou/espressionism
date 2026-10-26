@@ -3,7 +3,7 @@ import type { AxisOptions, UserSerie } from 'react-charts'
 import { Chart } from 'react-charts'
 
 import { ChartCard } from '@/features/common/components/ChartCard'
-import { usePrefersDark } from '@/features/common/hooks/use-prefers-dark'
+import { useTheme } from '@/features/theme/hooks/use-theme'
 
 import type { CoffeeInputs } from '../utils/cost-model'
 import { yearlySpend } from '../utils/cost-model'
@@ -22,7 +22,7 @@ interface YearlySpendChartProps {
 }
 
 export function YearlySpendChart({ inputs, currency }: YearlySpendChartProps) {
-  const dark = usePrefersDark()
+  const { isDark: dark } = useTheme()
   const years = useMemo(() => yearlySpend(inputs), [inputs])
 
   const data = useMemo<UserSerie<Datum>[]>(

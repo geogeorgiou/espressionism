@@ -3,7 +3,7 @@ import type { AxisOptions, UserSerie } from 'react-charts'
 import { Chart } from 'react-charts'
 
 import { ChartCard } from '@/features/common/components/ChartCard'
-import { usePrefersDark } from '@/features/common/hooks/use-prefers-dark'
+import { useTheme } from '@/features/theme/hooks/use-theme'
 
 import type { CoffeeInputs } from '../utils/cost-model'
 import { costPerCupOverTime } from '../utils/cost-model'
@@ -22,7 +22,7 @@ interface CostPerCupChartProps {
 }
 
 export function CostPerCupChart({ inputs, currency }: CostPerCupChartProps) {
-  const dark = usePrefersDark()
+  const { isDark: dark } = useTheme()
   const points = useMemo(() => costPerCupOverTime(inputs), [inputs])
 
   const data = useMemo<UserSerie<Datum>[]>(
