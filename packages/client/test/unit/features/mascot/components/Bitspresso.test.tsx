@@ -32,6 +32,19 @@ describe('Bitspresso', () => {
     ])
   })
 
+  it('freezes the steam and drips the sweat when scared', () => {
+    const { container } = render(
+      <Bitspresso form="mug" mood="scared" animated />,
+    )
+    for (const g of steamGroups(container)) {
+      expect(g.getAttribute('class') ?? '').not.toContain('animate-steam')
+    }
+    const sweat = container.querySelector('g[data-part="sweat"]')
+    expect(sweat?.getAttribute('class')).toBe(
+      'animate-sweat motion-reduce:animate-none',
+    )
+  })
+
   it('is hidden from screen readers when decorative', () => {
     const { container } = render(<Bitspresso label="" />)
     const svg = container.querySelector('svg')

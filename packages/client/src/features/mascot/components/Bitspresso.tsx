@@ -17,7 +17,10 @@ interface BitspressoProps {
   className?: string
   /** Accessible name; pass an empty string when the mascot is decorative. */
   label?: string
-  /** Lets the steam (or the sleepy "Z") drift upwards. Off by default. */
+  /**
+   * Lets the steam (or the sleepy "Z") drift upwards and the scared sweat
+   * drop drip. Off by default.
+   */
   animated?: boolean
 }
 
@@ -46,7 +49,7 @@ export function Bitspresso({
   label,
   animated = false,
 }: BitspressoProps) {
-  const { body, wisps, z } = useMemo(() => {
+  const { body, wisps, z, sweat } = useMemo(() => {
     const pixels = buildMascot(form, mood, flavor)
     const grouped: MascotPixel[][] = []
     for (const p of pixels) {
@@ -58,6 +61,7 @@ export function Bitspresso({
       body: pixels.filter((p) => p.part === 'body'),
       wisps: grouped,
       z: pixels.filter((p) => p.part === 'z'),
+      sweat: pixels.filter((p) => p.part === 'sweat'),
     }
   }, [form, mood, flavor])
 
@@ -65,6 +69,8 @@ export function Bitspresso({
     label ??
     `Bitspresso, ${flavor} ${form === 'togo' ? 'to-go cup' : 'mug'}, ${mood}`
   const decorative = name === ''
+  // A scared mascot freezes: the steam stops drifting.
+  const steamMoves = animated && mood !== 'scared'
 
   return (
     <svg
@@ -80,10 +86,10 @@ export function Bitspresso({
           key={`wisp-${wisp[0]?.x}-${wisp[0]?.y}`}
           data-part="steam"
           className={clsx(
-            animated && 'animate-steam motion-reduce:animate-none',
+            steamMoves && 'animate-steam motion-reduce:animate-none',
           )}
           style={
-            animated ? { animationDelay: `${i * WISP_STAGGER}s` } : undefined
+            steamMoves ? { animationDelay: `${i * WISP_STAGGER}s` } : undefined
           }
         >
           {wisp.map((p) => (
@@ -106,6 +112,18 @@ export function Bitspresso({
       {body.map((p) => (
         <Pixel key={`${p.x}-${p.y}`} pixel={p} />
       ))}
+      {sweat.length > 0 && (
+        <g
+          data-part="sweat"
+          className={clsx(
+            animated && 'animate-sweat motion-reduce:animate-none',
+          )}
+        >
+          {sweat.map((p) => (
+            <Pixel key={`${p.x}-${p.y}`} pixel={p} />
+          ))}
+        </g>
+      )}
     </svg>
   )
 }

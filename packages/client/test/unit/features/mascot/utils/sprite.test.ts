@@ -66,6 +66,34 @@ describe('Bitspresso pixel parts', () => {
   })
 })
 
+describe('Bitspresso scared mood', () => {
+  it('opens both eyes wide, three pixels across', () => {
+    for (const form of MASCOT_FORMS) {
+      const widths = stampFace(form, 'scared').map(
+        (row) => row.filter((ch) => ch === 'E').length,
+      )
+      expect(Math.max(...widths)).toBe(6)
+    }
+  })
+
+  it('drops the cheeks and adds a sweat drop', () => {
+    const pixels = buildMascot('mug', 'scared', 'house')
+    expect(pixels.some((p) => p.fill.includes('--mug-cheeks'))).toBe(false)
+    const sweat = pixels.filter((p) => p.part === 'sweat')
+    expect(sweat.length).toBeGreaterThan(0)
+    expect(sweat.every((p) => p.fill === 'var(--mug-sweat, #7cc6f2)')).toBe(
+      true,
+    )
+  })
+
+  it('keeps the sweat drop to the scared face', () => {
+    for (const mood of MASCOT_MOODS.filter((m) => m !== 'scared')) {
+      const pixels = buildMascot('togo', mood, 'latte')
+      expect(pixels.some((p) => p.part === 'sweat')).toBe(false)
+    }
+  })
+})
+
 describe('Bitspresso theme colors', () => {
   it('reads body colors from the theme, with Diner fallbacks', () => {
     const fills = new Set(

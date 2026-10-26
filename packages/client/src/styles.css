@@ -69,6 +69,7 @@
   --mug-tongue: #e0574f;
   --mug-cheeks: #f08c8c;
   --mug-steam: #ffffff;
+  --mug-sweat: #7cc6f2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -118,6 +119,7 @@
     --mug-tongue: #e48aa0;
     --mug-cheeks: #e48aa0;
     --mug-steam: #ffffff;
+    --mug-sweat: #8fd3ff;
   }
 }
 
@@ -167,6 +169,7 @@
   --mug-tongue: #ffd1c4;
   --mug-cheeks: #f7b0a0;
   --mug-steam: #ffffff;
+  --mug-sweat: #8fd0f5;
 }
 
 [data-theme='night'] {
@@ -215,6 +218,7 @@
   --mug-tongue: #e48aa0;
   --mug-cheeks: #e48aa0;
   --mug-steam: #ffffff;
+  --mug-sweat: #8fd3ff;
 }
 
 [data-theme='mint'] {
@@ -263,6 +267,7 @@
   --mug-tongue: #e0574f;
   --mug-cheeks: #f2a1a1;
   --mug-steam: #ffffff;
+  --mug-sweat: #7fc8e8;
 }
 
 @theme inline {
@@ -315,6 +320,8 @@
   --animate-steam: steam-rise 2.1s steps(7, end) infinite;
   --animate-snooze: snooze 2s steps(2, end) infinite;
   --animate-hop: pixel-hop 0.6s ease-out 1;
+  --animate-sweat: sweat-drip 1.6s steps(4, end) infinite;
+  --animate-shiver: pixel-shiver 0.4s steps(1, end) 1;
 
   @keyframes steam-rise {
     0% {
@@ -343,6 +350,50 @@
     }
     50% {
       transform: translate(-1px, -1px);
+    }
+  }
+
+  @keyframes sweat-drip {
+    0% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    75% {
+      transform: translateY(3px);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(3px);
+      opacity: 0;
+    }
+  }
+
+  /* One short burst of jitter; steps(1) makes every frame a hard jump. */
+  @keyframes pixel-shiver {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    12.5% {
+      transform: translate(-2px, 0);
+    }
+    25% {
+      transform: translate(2px, -1px);
+    }
+    37.5% {
+      transform: translate(-2px, 1px);
+    }
+    50% {
+      transform: translate(2px, 0);
+    }
+    62.5% {
+      transform: translate(-1px, -1px);
+    }
+    75% {
+      transform: translate(1px, 1px);
+    }
+    87.5% {
+      transform: translate(-1px, 0);
     }
   }
 
