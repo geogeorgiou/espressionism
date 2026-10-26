@@ -44,7 +44,8 @@ pnpm exec vp test run test/unit/features/calculator/utils/cost-model.test.ts
 src/
 ├── components/
 │   ├── ui/              — shadcn/ui primitives
-│   ├── SiteHeader.tsx   — app shell, not owned by a domain
+│   ├── SiteHeader.tsx   — app shell, not owned by a domain: compact header below `lg`
+│   ├── HeroHeader.tsx   — landing hero (nav, headline, mascot) from `lg` up
 │   └── SiteFooter.tsx
 ├── features/
 │   ├── calculator/
@@ -75,10 +76,10 @@ All money math lives in `features/calculator/utils/cost-model.ts` as pure functi
 
 - Tailwind utility classes only. No inline `style={{}}` except genuinely dynamic computed values.
 - Use `clsx` for conditional class names in app code; shadcn primitives in `components/ui/` use `cn()` (clsx + tailwind-merge).
-- Design tokens live in `src/styles.css` under shadcn's names (`--background`, `--primary`, …) plus brand extras: `--brew`, `--screen`, `--chart-cafe`, `--chart-home`. Light by default; dark via `prefers-color-scheme` or a `.dark` class.
+- Design tokens live in `src/styles.css` under shadcn's names (`--background`, `--primary`, …) plus brand extras: `--brew`, `--crema`, `--screen`, `--chart-cafe`, `--chart-home`. Light by default; dark via `prefers-color-scheme` or a `.dark` class.
 - Fonts: `font-pixel` (Silkscreen) for headings and big numbers, `font-sans` (Karla) for body.
 - Hard pixel shadows: `shadow-pixel`, `shadow-pixel-lg`.
-- Mobile first: design at 390px wide, then add `sm:` / `lg:` layouts. No horizontal scroll at phone width; touch targets at least 44px (`h-11`).
+- Mobile first: design at 390px wide, then add `sm:` / `lg:` layouts. Below `lg` the page is one stacked column with a compact header; from `lg` (laptops) up it opens with the full-height `HeroHeader`, then the two-column calculator. No horizontal scroll at phone width; touch targets at least 44px (`h-11`).
 
 ### shadcn/ui
 

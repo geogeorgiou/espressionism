@@ -36,6 +36,7 @@
   --brew: #6b3b22;
   --screen: #2a2220;
   --screen-foreground: #f4ead8;
+  --crema: #d9a066;
 
   /* Charts: café (to go) vs machine (for here) */
   --chart-cafe: #d8473a;
@@ -131,6 +132,7 @@
   --color-brew: var(--brew);
   --color-screen: var(--screen);
   --color-screen-foreground: var(--screen-foreground);
+  --color-crema: var(--crema);
   --color-chart-cafe: var(--chart-cafe);
   --color-chart-home: var(--chart-home);
 
@@ -146,6 +148,12 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {
