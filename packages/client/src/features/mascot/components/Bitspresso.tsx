@@ -31,7 +31,8 @@ function Pixel({ pixel }: { pixel: MascotPixel }) {
       y={pixel.y}
       width={1}
       height={1}
-      fill={pixel.fill}
+      // Fills are CSS values (often `var(--mug-…)`), so they go through style.
+      style={{ fill: pixel.fill }}
       opacity={pixel.opacity}
     />
   )

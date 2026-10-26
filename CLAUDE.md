@@ -79,7 +79,7 @@ All money math lives in `features/calculator/utils/cost-model.ts` as pure functi
 
 - Tailwind utility classes only. No inline `style={{}}` except genuinely dynamic computed values.
 - Use `clsx` for conditional class names in app code; shadcn primitives in `components/ui/` use `cn()` (clsx + tailwind-merge).
-- Design tokens live in `src/styles.css` under shadcn's names (`--background`, `--primary`, …) plus brand extras: `--brew`, `--crema`, `--screen`, `--chart-cafe`, `--chart-home`. Themes are `[data-theme='…']` blocks over the same tokens: `diner` (default light), `espresso` (default dark), `tomato`, `mint` and `night`. With no `data-theme` ("System") the page follows `prefers-color-scheme` between diner and espresso. `data-scheme` (`light`/`dark`) on <html> drives the `dark:` variant. To add a theme: add its CSS block, then an entry in `THEMES` (`features/theme/utils/themes.ts`).
+- Design tokens live in `src/styles.css` under shadcn's names (`--background`, `--primary`, …) plus brand extras: `--brew`, `--crema`, `--screen`, `--chart-cafe`, `--chart-home`. Themes are `[data-theme='…']` blocks over the same tokens, one per sticker on the Bitspresso sticker sheet: `diner` (default light), `tomato`, `night` (default dark) and `mint`. With no `data-theme` ("System") the page follows `prefers-color-scheme` between diner and night. Each block also sets the `--mug-*` properties that recolor Bitspresso's body (see `MUG_COLOR_VARS` in `sprite.ts`); the flavor band stays the drink's color. `data-scheme` (`light`/`dark`) on <html> drives the `dark:` variant, and `data-theme` on any element scopes a palette to it. To add a theme: add its CSS block (UI tokens + `--mug-*`), then an entry in `THEMES` (`features/theme/utils/themes.ts`).
 - Fonts: `font-pixel` (Silkscreen) for headings and big numbers, `font-sans` (Karla) for body.
 - Hard pixel shadows: `shadow-pixel`, `shadow-pixel-lg`.
 - Mobile first: design at 390px wide, then add `sm:` / `lg:` layouts. Below `lg` the page is one stacked column with a compact header; from `lg` (laptops) up it opens with the full-height `HeroHeader`, then the two-column calculator. No horizontal scroll at phone width; touch targets at least 44px (`h-11`).
@@ -111,7 +111,7 @@ Always use **TanStack Form** through the app hook in `features/common/form/form.
 
 Every pixel carries a `part` (`body`, `steam`, `z`; steam also has a `wisp` index), so the renderer can animate pieces of the drawing. `animated` makes the steam drift up wisp by wisp (`animate-steam`) and the sleepy Z bob (`animate-snooze`); the hero mug uses it. `animate-hop` is a one-shot bounce used on hover for the verdict mascots. All motion lives in the `@theme` block in `styles.css`, moves in `steps()` to stay pixel-crisp, and must be paired with `motion-reduce:animate-none`.
 
-Favicons (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192/512.png`) are the header logo: the house-flavor mug winking on the dark screen tile. Regenerate them from `buildMascot('mug', 'wink', 'house')` if the sprite changes.
+Favicons (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192/512.png`) are the header logo: the house-flavor mug winking on the dark screen tile. Regenerate them from `buildMascot('mug', 'wink', 'house')` if the sprite changes, resolving each `var(--mug-…, #hex)` fill to its Diner fallback.
 
 ### Exports
 

@@ -25,7 +25,7 @@ describe('ThemeSwitcher', () => {
     const trigger = screen.getByRole('button', { name: 'Color theme: System' })
     await user.click(trigger)
     await user.click(
-      await screen.findByRole('menuitemradio', { name: /Night/ }),
+      await screen.findByRole('menuitemradio', { name: /^Night/ }),
     )
 
     await waitFor(() =>
@@ -47,7 +47,7 @@ describe('ThemeSwitcher', () => {
       screen.getByRole('button', { name: 'Color theme: Tomato' }),
     )
     await user.click(
-      await screen.findByRole('menuitemradio', { name: /System/ }),
+      await screen.findByRole('menuitemradio', { name: /^System/ }),
     )
 
     await waitFor(() =>

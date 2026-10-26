@@ -65,3 +65,20 @@ describe('Bitspresso pixel parts', () => {
     expect(pixels.some((p) => p.part === 'steam')).toBe(false)
   })
 })
+
+describe('Bitspresso theme colors', () => {
+  it('reads body colors from the theme, with Diner fallbacks', () => {
+    const fills = new Set(
+      buildMascot('mug', 'idle', 'house').map((p) => p.fill),
+    )
+    expect(fills).toContain('var(--mug-body, #f4ead8)')
+    expect(fills).toContain('var(--mug-outline, #2a1810)')
+  })
+
+  it('keeps the flavor band as a fixed drink color', () => {
+    const fills = new Set(
+      buildMascot('togo', 'idle', 'cherry').map((p) => p.fill),
+    )
+    expect(fills).toContain(FLAVOR_COLORS.cherry.B)
+  })
+})

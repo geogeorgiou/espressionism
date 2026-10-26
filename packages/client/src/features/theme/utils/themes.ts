@@ -3,14 +3,7 @@
  * file holds the list the switcher shows and the logic that applies one.
  */
 
-export const THEME_IDS = [
-  'system',
-  'diner',
-  'espresso',
-  'tomato',
-  'mint',
-  'night',
-] as const
+export const THEME_IDS = ['system', 'diner', 'tomato', 'night', 'mint'] as const
 
 export type ThemeId = (typeof THEME_IDS)[number]
 export type ColorScheme = 'light' | 'dark'
@@ -18,55 +11,56 @@ export type ColorScheme = 'light' | 'dark'
 export interface ThemeOption {
   id: ThemeId
   label: string
+  /** The sticker's line from the Bitspresso sticker sheet. */
   description: string
   /** Fixed scheme, or null for "follow the OS". */
   scheme: ColorScheme | null
-  /** Page, accent and screen colors, for the switcher's swatch. */
-  swatch: readonly [string, string, string]
+  /** Palette used for the switcher's preview (System previews Diner). */
+  preview: Exclude<ThemeId, 'system'>
+  /** Bitspresso's mood on the preview, as on the sticker. */
+  mood: 'idle' | 'happy' | 'sleepy' | 'surprised'
 }
 
 export const THEMES: readonly ThemeOption[] = [
   {
     id: 'system',
     label: 'System',
-    description: 'Diner by day, Espresso by night',
+    description: 'Diner by day, Night after dark',
     scheme: null,
-    swatch: ['#e7eceb', '#0f6f68', '#171412'],
+    preview: 'diner',
+    mood: 'idle',
   },
   {
     id: 'diner',
     label: 'Diner',
-    description: 'Cream and teal',
+    description: "Fresh pot's on.",
     scheme: 'light',
-    swatch: ['#e7eceb', '#0f6f68', '#2a2220'],
-  },
-  {
-    id: 'espresso',
-    label: 'Espresso',
-    description: 'Dark roast',
-    scheme: 'dark',
-    swatch: ['#171412', '#4fc1b4', '#d9a066'],
+    preview: 'diner',
+    mood: 'idle',
   },
   {
     id: 'tomato',
     label: 'Tomato',
-    description: 'Red mug, teal screen',
+    description: 'Refill!',
     scheme: 'light',
-    swatch: ['#f5e9e4', '#b7362b', '#0f6f68'],
-  },
-  {
-    id: 'mint',
-    label: 'Mint',
-    description: 'Fresh and pale',
-    scheme: 'light',
-    swatch: ['#e4f2ec', '#2b7a62', '#22302b'],
+    preview: 'tomato',
+    mood: 'happy',
   },
   {
     id: 'night',
     label: 'Night',
-    description: 'Navy late shift',
+    description: 'Five more minutes',
     scheme: 'dark',
-    swatch: ['#10141f', '#8fb0e6', '#e48aa0'],
+    preview: 'night',
+    mood: 'sleepy',
+  },
+  {
+    id: 'mint',
+    label: 'Mint',
+    description: 'Is that decaf?!',
+    scheme: 'light',
+    preview: 'mint',
+    mood: 'surprised',
   },
 ]
 

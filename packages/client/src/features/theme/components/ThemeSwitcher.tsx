@@ -11,24 +11,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Bitspresso } from '@/features/mascot/components/Bitspresso'
 
 import { useTheme } from '../hooks/use-theme'
 import type { ThemeOption } from '../utils/themes'
 import { THEMES, isThemeId } from '../utils/themes'
 
-function Swatch({ colors }: { colors: ThemeOption['swatch'] }) {
+/**
+ * The theme's sticker in miniature: its mug on its screen color. The
+ * `data-theme` attribute scopes that palette to the preview only.
+ */
+function ThemePreview({ option }: { option: ThemeOption }) {
   return (
     <span
       aria-hidden
-      className="flex size-6 shrink-0 overflow-hidden rounded-[3px] border-2 border-foreground"
+      data-theme={option.preview}
+      className="flex size-9 shrink-0 items-center justify-center rounded-md border-2 border-foreground bg-screen"
     >
-      {colors.map((color) => (
-        <span
-          key={color}
-          className="h-full flex-1"
-          style={{ backgroundColor: color }}
-        />
-      ))}
+      <Bitspresso
+        form="mug"
+        mood={option.mood}
+        flavor="house"
+        className="size-7"
+        label=""
+      />
     </span>
   )
 }
@@ -76,7 +82,7 @@ export function ThemeSwitcher({
               value={option.id}
               className="min-h-11 gap-3"
             >
-              <Swatch colors={option.swatch} />
+              <ThemePreview option={option} />
               <span className="flex flex-col">
                 <span className="font-semibold">{option.label}</span>
                 <span className="text-xs text-muted-foreground">
