@@ -56,10 +56,13 @@ src/
 │   ├── mascot/
 │   │   ├── components/  — Bitspresso (SVG pixel renderer)
 │   │   └── utils/       — sprite (text sprites, faces, flavors)
+│   ├── theme/
+│   │   ├── components/  — ThemeSwitcher (dropdown in both headers)
+│   │   ├── hooks/       — useTheme (theme, isDark, setTheme)
+│   │   └── utils/       — themes list, applyTheme, pre-paint init script
 │   └── common/
 │       ├── components/  — ChartCard
-│       ├── form/        — TanStack Form app hook + field components
-│       └── hooks/       — usePrefersDark
+│       └── form/        — TanStack Form app hook + field components
 ├── lib/utils.ts         — shadcn `cn()`
 └── routes/              — thin TanStack Router entry points only
 ```
@@ -76,7 +79,7 @@ All money math lives in `features/calculator/utils/cost-model.ts` as pure functi
 
 - Tailwind utility classes only. No inline `style={{}}` except genuinely dynamic computed values.
 - Use `clsx` for conditional class names in app code; shadcn primitives in `components/ui/` use `cn()` (clsx + tailwind-merge).
-- Design tokens live in `src/styles.css` under shadcn's names (`--background`, `--primary`, …) plus brand extras: `--brew`, `--crema`, `--screen`, `--chart-cafe`, `--chart-home`. Light by default; dark via `prefers-color-scheme` or a `.dark` class.
+- Design tokens live in `src/styles.css` under shadcn's names (`--background`, `--primary`, …) plus brand extras: `--brew`, `--crema`, `--screen`, `--chart-cafe`, `--chart-home`. Themes are `[data-theme='…']` blocks over the same tokens: `diner` (default light), `espresso` (default dark), `tomato`, `mint` and `night`. With no `data-theme` ("System") the page follows `prefers-color-scheme` between diner and espresso. `data-scheme` (`light`/`dark`) on <html> drives the `dark:` variant. To add a theme: add its CSS block, then an entry in `THEMES` (`features/theme/utils/themes.ts`).
 - Fonts: `font-pixel` (Silkscreen) for headings and big numbers, `font-sans` (Karla) for body.
 - Hard pixel shadows: `shadow-pixel`, `shadow-pixel-lg`.
 - Mobile first: design at 390px wide, then add `sm:` / `lg:` layouts. Below `lg` the page is one stacked column with a compact header; from `lg` (laptops) up it opens with the full-height `HeroHeader`, then the two-column calculator. No horizontal scroll at phone width; touch targets at least 44px (`h-11`).
@@ -99,7 +102,7 @@ Always use **TanStack Form** through the app hook in `features/common/form/form.
 
 - Wrap every chart in `ChartCard` (`features/common/components/ChartCard.tsx`). It gives the chart a fixed-height box (react-charts measures its parent), renders it only in the browser (`ClientOnly`), and adds a legend plus a screen-reader summary.
 - Memoize `data`, `primaryAxis` and `secondaryAxes` with `useMemo`; react-charts expects stable options.
-- Colors come from CSS tokens via `defaultColors` (see `chart-theme.ts`); pass `dark={usePrefersDark()}`.
+- Colors come from CSS tokens via `defaultColors` (see `chart-theme.ts`); pass `dark` from `useTheme().isDark`.
 - react-charts 3 is a beta; keep its usage inside the `*Chart.tsx` components so it can be swapped.
 
 ### Mascot: Bitspresso
@@ -130,4 +133,5 @@ test/unit/features/mascot/utils/sprite.test.ts
 
 - Use `@testing-library/user-event` (`userEvent.setup()`) for every interaction; never `fireEvent`.
 - Use `waitFor` for state that updates after an interaction (TanStack Form validates after change/blur).
+- `test/setup.ts` stubs `window.matchMedia` (light); theme tests override it with `stubMatchMedia` from `test/unit/features/theme/match-media.ts`.
 - jest-dom matchers are not installed; assert on DOM properties directly (`input.valueAsNumber`, `el.textContent`, `el.getAttribute(...)`).

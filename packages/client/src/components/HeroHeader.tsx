@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { SectionLink } from '@/components/SectionLink'
 import { Button } from '@/components/ui/button'
 import { Bitspresso } from '@/features/mascot/components/Bitspresso'
+import { ThemeSwitcher } from '@/features/theme/components/ThemeSwitcher'
 
 const NAV_LINKS = [
   { section: 'calculator', label: 'Calculator' },
@@ -46,6 +47,7 @@ export function HeroHeader() {
             <Button asChild className="border-2 border-foreground font-pixel">
               <SectionLink section="calculator">Start calculating</SectionLink>
             </Button>
+            <ThemeSwitcher showLabel className="ml-2" />
           </nav>
         </div>
       </div>

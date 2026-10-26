@@ -1,9 +1,15 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import {
+  HeadContent,
+  ScriptOnce,
+  Scripts,
+  createRootRoute,
+} from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
 import { SiteFooter } from '@/components/SiteFooter'
 import { SiteHeader } from '@/components/SiteHeader'
+import { THEME_INIT_SCRIPT } from '@/features/theme/utils/themes'
 
 import appCss from '../styles.css?url'
 
@@ -38,8 +44,9 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <ScriptOnce>{THEME_INIT_SCRIPT}</ScriptOnce>
         <HeadContent />
       </head>
       <body>
