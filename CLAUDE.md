@@ -29,6 +29,7 @@ Run from the repo root:
 - **Build (cached):** `pnpm build`
 - **Format + lint + type check:** `pnpm check` (`pnpm check --fix` to autofix)
 - **Unit tests:** `pnpm test:unit`
+- **E2E tests:** `pnpm test:e2e` (Playwright; builds the app and serves it with `vp preview` on :4173). First run: `pnpm --filter @espressionism/client exec playwright install chromium`
 
 Single test file (from `packages/client/`):
 
@@ -135,3 +136,11 @@ test/unit/features/mascot/utils/sprite.test.ts
 - Use `waitFor` for state that updates after an interaction (TanStack Form validates after change/blur).
 - `test/setup.ts` stubs `window.matchMedia` (light); theme tests override it with `stubMatchMedia` from `test/unit/features/theme/match-media.ts`.
 - jest-dom matchers are not installed; assert on DOM properties directly (`input.valueAsNumber`, `el.textContent`, `el.getAttribute(...)`).
+
+#### E2E (Playwright)
+
+- Specs live in `packages/client/test/e2e/*.spec.ts` (`.spec`, so Vitest's `*.test.*` glob skips them); config in `packages/client/playwright.config.ts`. Import from `@playwright/test`.
+- They run against the production build (`vp build && vp preview`), Chromium only, at 1280×800: the landing hero exists only from `lg` up. `colorScheme` defaults to light, so System shows the Diner palette; use `page.emulateMedia` for dark.
+- Query by role and visible text, scoped with the helpers in `test/e2e/hero.ts` (`heroNav`, `heroBody`, `heroCard`); no `data-testid`. Write expected copy as literals, don't import it from `src/`.
+- Section links: assert both the URL hash and `toBeInViewport()` on the target.
+- CI runs them in the separate `e2e` job and uploads `playwright-report` on failure.

@@ -24,6 +24,7 @@
     "format:check": "vp fmt --check",
     "check": "vp check",
     "test:unit": "vp run -r test:unit",
+    "test:e2e": "vp run -r test:e2e",
     "prepare": "vp config --no-agent"
   },
   "devDependencies": {
