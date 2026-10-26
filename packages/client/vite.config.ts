@@ -14,7 +14,11 @@ const config = defineConfig(({ mode }) => ({
       : [
           devtools(),
           tailwindcss(),
-          tanstackStart({ spa: { enabled: true } }),
+          // Emit the SPA shell as index.html so static hosts serve it at `/`
+          // and deep links can rewrite to it (the default is _shell.html).
+          tanstackStart({
+            spa: { enabled: true, prerender: { outputPath: '/index' } },
+          }),
           viteReact(),
         ],
   run: {
