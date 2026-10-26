@@ -1,11 +1,12 @@
 import { clsx } from 'clsx'
-import { useId } from 'react'
+import { useId, useState } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 import { FieldError } from './FieldError'
 import { useFieldContext } from './form-context'
+import { parseDecimal } from './parse-decimal'
 
 interface NumberFieldProps {
   label: string
@@ -14,9 +15,6 @@ interface NumberFieldProps {
   prefix?: string
   /** Shown inside the input on the right, e.g. "cups". */
   suffix?: string
-  step?: number
-  min?: number
-  max?: number
   /** Whole numbers only: switches the mobile keyboard to digits. */
   integer?: boolean
 }
@@ -26,9 +24,6 @@ export function NumberField({
   hint,
   prefix,
   suffix,
-  step = 1,
-  min,
-  max,
   integer = false,
 }: NumberFieldProps) {
   const field = useFieldContext<number>()
@@ -37,7 +32,14 @@ export function NumberField({
   const hintId = `${id}-hint`
   const { errors, isTouched } = field.state.meta
   const invalid = isTouched && errors.length > 0
-  const value = Number.isNaN(field.state.value) ? '' : field.state.value
+  // A text input keeps what the user typed ("4," or "4.") while the form holds
+  // the parsed number. type="number" can't: it drops the separator mid-entry
+  // and rejects commas on mobile keyboards.
+  const [text, setText] = useState(() => formatNumber(field.state.value))
+  // Resync when the value changes from outside (reset, URL), not from typing.
+  if (!Object.is(parseDecimal(text), field.state.value)) {
+    setText(formatNumber(field.state.value))
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -51,13 +53,14 @@ export function NumberField({
         <Input
           id={id}
           name={field.name}
-          type="number"
+          type="text"
           inputMode={integer ? 'numeric' : 'decimal'}
-          step={step}
-          min={min}
-          max={max}
-          value={value}
-          onChange={(e) => field.handleChange(e.target.valueAsNumber)}
+          autoComplete="off"
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value)
+            field.handleChange(parseDecimal(e.target.value))
+          }}
           onBlur={field.handleBlur}
           aria-invalid={invalid || undefined}
           aria-describedby={
@@ -79,4 +82,8 @@ export function NumberField({
       <FieldError id={errorId} errors={errors} show={isTouched} />
     </div>
   )
+}
+
+function formatNumber(value: number): string {
+  return Number.isNaN(value) ? '' : String(value)
 }

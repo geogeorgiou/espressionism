@@ -16,8 +16,19 @@ describe('CalculatorForm', () => {
     render(<Harness />)
     const price = screen.getByLabelText<HTMLInputElement>('Price per drink')
     const days = screen.getByLabelText<HTMLInputElement>('Days a week')
-    expect(price.valueAsNumber).toBe(3.5)
-    expect(days.valueAsNumber).toBe(5)
+    expect(price.value).toBe('3.5')
+    expect(days.value).toBe('5')
+  })
+
+  it.each(['4.25', '4,25'])('accepts a decimal typed as %s', async (typed) => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    const price = screen.getByLabelText<HTMLInputElement>('Price per drink')
+    await user.clear(price)
+    await user.type(price, typed)
+    expect(price.value).toBe(typed)
+    await user.tab()
+    expect(price.getAttribute('aria-invalid')).toBeNull()
   })
 
   it('flags a days-per-week value above seven', async () => {
