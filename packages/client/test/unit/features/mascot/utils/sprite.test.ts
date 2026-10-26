@@ -66,6 +66,57 @@ describe('Bitspresso pixel parts', () => {
   })
 })
 
+describe('Bitspresso scared mood', () => {
+  it('squeezes the eyes shut into > <', () => {
+    for (const form of MASCOT_FORMS) {
+      const eyes = stampFace(form, 'scared')
+        .map((row) => row.flatMap((ch, x) => (ch === 'E' ? [x] : [])))
+        .filter((xs) => xs.length > 0)
+      const left = Math.min(...eyes.flat())
+      expect(eyes.map((xs) => xs.map((x) => x - left))).toEqual([
+        [0, 7],
+        [1, 6],
+        [0, 7],
+      ])
+    }
+  })
+
+  it('drops the cheeks and adds a sweat drop', () => {
+    const pixels = buildMascot('mug', 'scared', 'house')
+    expect(pixels.some((p) => p.fill.includes('--mug-cheeks'))).toBe(false)
+    const sweat = pixels.filter((p) => p.part === 'sweat')
+    expect(sweat.length).toBeGreaterThan(0)
+    expect(sweat.every((p) => p.fill === 'var(--mug-sweat, #7cc6f2)')).toBe(
+      true,
+    )
+  })
+
+  it('draws the sweat drop over the body, so it leaves no hole as it drips', () => {
+    const pixels = buildMascot('mug', 'scared', 'house')
+    for (const drop of pixels.filter((p) => p.part === 'sweat')) {
+      expect(
+        pixels.some(
+          (p) => p.part === 'body' && p.x === drop.x && p.y === drop.y,
+        ),
+      ).toBe(true)
+    }
+  })
+
+  it('has no brows, only the squeezed eyes', () => {
+    const rows = stampFace('mug', 'scared')
+    const plain = stampFace('mug', 'idle')
+    const firstEyeRow = rows.findIndex((row) => row.includes('E'))
+    expect(rows[firstEyeRow - 1]).toEqual(plain[firstEyeRow - 1])
+  })
+
+  it('keeps the sweat drop to the scared face', () => {
+    for (const mood of MASCOT_MOODS.filter((m) => m !== 'scared')) {
+      const pixels = buildMascot('togo', mood, 'latte')
+      expect(pixels.some((p) => p.part === 'sweat')).toBe(false)
+    }
+  })
+})
+
 describe('Bitspresso theme colors', () => {
   it('reads body colors from the theme, with Diner fallbacks', () => {
     const fills = new Set(

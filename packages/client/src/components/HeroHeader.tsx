@@ -1,4 +1,6 @@
 import { Link } from '@tanstack/react-router'
+import { clsx } from 'clsx'
+import { useState } from 'react'
 
 import { SectionLink } from '@/components/SectionLink'
 import { Button } from '@/components/ui/button'
@@ -25,6 +27,8 @@ const HIGHLIGHTS = [
 export function HeroHeader() {
   // The speech bubble says the active theme's sticker line.
   const { palette } = useTheme()
+  // Hovering the card scares Bitspresso: > < eyes, sweat, a shiver and a plea.
+  const [scared, setScared] = useState(false)
 
   return (
     <header className="hidden flex-col lg:flex lg:min-h-[calc(100dvh-4rem)]">
@@ -87,13 +91,20 @@ export function HeroHeader() {
           </div>
 
           <figure className="flex flex-[1_1_340px] justify-center">
-            <div className="flex flex-col items-center gap-3 border-[6px] border-foreground bg-screen p-6 text-screen-foreground shadow-pixel-lg">
+            <div
+              onPointerEnter={() => setScared(true)}
+              onPointerLeave={() => setScared(false)}
+              className={clsx(
+                'flex flex-col items-center gap-3 border-[6px] border-foreground bg-screen p-6 text-screen-foreground shadow-pixel-lg',
+                scared && 'animate-shiver motion-reduce:animate-none',
+              )}
+            >
               <p className="self-end bg-screen-foreground px-2.5 py-1.5 font-pixel text-sm text-screen">
-                {stickerLine(palette)}
+                {scared ? "Don't drink me plz!" : stickerLine(palette)}
               </p>
               <Bitspresso
                 form="mug"
-                mood="happy"
+                mood={scared ? 'scared' : 'happy'}
                 flavor="house"
                 animated
                 className="size-72 xl:size-80"

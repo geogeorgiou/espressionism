@@ -1,6 +1,6 @@
 /**
  * Bitspresso: an 8-bit coffee mascot with two forms (a diner mug "for here" and
- * a takeaway cup "to go"), five moods and five flavors.
+ * a takeaway cup "to go"), six moods and five flavors.
  *
  * Each form is a text sprite: one letter per pixel, "." is empty.
  * Both forms share the same cream body and the same face, stamped at the same
@@ -13,7 +13,7 @@
  * Legend:
  *   K outline · W body · H shine · S shade · B flavor band · N band shade
  *   C coffee · F foam · L lid · D lid rim · O saucer
- *   E eyes · P cheeks · M mouth · R tongue · V steam
+ *   E eyes · P cheeks · M mouth · R tongue · V steam · T sweat
  */
 
 export const GRID_SIZE = 20
@@ -25,6 +25,7 @@ export const MASCOT_MOODS = [
   'sleepy',
   'surprised',
   'wink',
+  'scared',
 ] as const
 export const MASCOT_FLAVORS = [
   'house',
@@ -39,7 +40,7 @@ export type MascotMood = (typeof MASCOT_MOODS)[number]
 export type MascotFlavor = (typeof MASCOT_FLAVORS)[number]
 
 /** Which part of the drawing a pixel belongs to, so renderers can animate it. */
-export type MascotPart = 'body' | 'steam' | 'z'
+export type MascotPart = 'body' | 'steam' | 'z' | 'sweat'
 
 export interface MascotPixel {
   x: number
@@ -122,6 +123,7 @@ export const MUG_COLOR_VARS: Record<string, { name: string; diner: string }> = {
   R: { name: '--mug-tongue', diner: '#e0574f' },
   P: { name: '--mug-cheeks', diner: '#f08c8c' },
   V: { name: '--mug-steam', diner: '#ffffff' },
+  T: { name: '--mug-sweat', diner: '#7cc6f2' },
 }
 
 const BASE_COLORS: Record<string, string> = Object.fromEntries(
@@ -171,6 +173,11 @@ export const FLAVOR_COLORS: Record<
 const SPRITE_TOP = 5
 const FACE_TOP = 4
 const STEAM_WAVE = [0, 1, 0, -1]
+/** Scared sweat drop, relative to the face kit: just right of the face. */
+const SWEAT_DROP = [
+  [10, 0],
+  [10, 1],
+]
 
 /** Returns the sprite rows (as letters) with the mood's face stamped on. */
 export function stampFace(form: MascotForm, mood: MascotMood): string[][] {
@@ -192,6 +199,13 @@ export function stampFace(form: MascotForm, mood: MascotMood): string[][] {
   const eyeSquint = (dx: number) => {
     set(dx, 0, 'E')
     set(dx + 1, 0, 'E')
+  }
+  /** Eye squeezed shut into a chevron: `>` points right, `<` points left. */
+  const eyeSqueezed = (dx: number, pointsRight: boolean) => {
+    const [outer, inner] = pointsRight ? [dx, dx + 1] : [dx + 1, dx]
+    set(outer, 0, 'E')
+    set(inner, 1, 'E')
+    set(outer, 2, 'E')
   }
   const smile = () => {
     set(3, 2, 'M')
@@ -246,6 +260,16 @@ export function stampFace(form: MascotForm, mood: MascotMood): string[][] {
       cheeks()
       break
     }
+    case 'scared': {
+      eyeSqueezed(1, true)
+      eyeSqueezed(7, false)
+      // Wobbly mouth.
+      set(3, 3, 'M')
+      set(4, 2, 'M')
+      set(5, 3, 'M')
+      set(6, 2, 'M')
+      break
+    }
   }
   return grid
 }
@@ -295,5 +319,18 @@ export function buildMascot(
     })
   }
 
-  return [...pixels.values()]
+  // The sweat drop sits on top of the body rather than replacing it, so the
+  // shade shows through again as the drop drips down.
+  const sweat: MascotPixel[] =
+    mood === 'scared'
+      ? SWEAT_DROP.map(([dx, dy]) => ({
+          x: FORMS[form].faceX + dx,
+          y: SPRITE_TOP + FACE_TOP + dy,
+          fill: colors.T,
+          opacity: 1,
+          part: 'sweat',
+        }))
+      : []
+
+  return [...pixels.values(), ...sweat]
 }

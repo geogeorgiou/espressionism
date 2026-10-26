@@ -52,35 +52,18 @@ export const CalculatorForm = withForm({
           </form.AppField>
           <form.AppField name="cafePrice">
             {(field) => (
-              <field.NumberField
-                label="Price per drink"
-                prefix={symbol}
-                step={0.1}
-                min={0}
-              />
+              <field.NumberField label="Price per drink" prefix={symbol} />
             )}
           </form.AppField>
           <div className="grid grid-cols-2 gap-4">
             <form.AppField name="cupsPerDay">
               {(field) => (
-                <field.NumberField
-                  label="Cups a day"
-                  suffix="cups"
-                  min={1}
-                  max={10}
-                  integer
-                />
+                <field.NumberField label="Cups a day" suffix="cups" integer />
               )}
             </form.AppField>
             <form.AppField name="daysPerWeek">
               {(field) => (
-                <field.NumberField
-                  label="Days a week"
-                  suffix="days"
-                  min={1}
-                  max={7}
-                  integer
-                />
+                <field.NumberField label="Days a week" suffix="days" integer />
               )}
             </form.AppField>
           </div>
@@ -93,8 +76,6 @@ export const CalculatorForm = withForm({
                 label="Machine price"
                 hint="Include a grinder if you need one."
                 prefix={symbol}
-                step={10}
-                min={0}
               />
             )}
           </form.AppField>
@@ -104,8 +85,6 @@ export const CalculatorForm = withForm({
                 label="Cost per home cup"
                 hint="Beans, milk and power for one drink."
                 prefix={symbol}
-                step={0.05}
-                min={0}
               />
             )}
           </form.AppField>
@@ -115,8 +94,6 @@ export const CalculatorForm = withForm({
                 label="Upkeep per year"
                 hint="Descaler, filters, the odd service."
                 prefix={symbol}
-                step={5}
-                min={0}
               />
             )}
           </form.AppField>
@@ -126,13 +103,7 @@ export const CalculatorForm = withForm({
           <div className="grid grid-cols-2 gap-4">
             <form.AppField name="years">
               {(field) => (
-                <field.NumberField
-                  label="Over"
-                  suffix="years"
-                  min={1}
-                  max={10}
-                  integer
-                />
+                <field.NumberField label="Over" suffix="years" integer />
               )}
             </form.AppField>
             <form.AppField name="currency">

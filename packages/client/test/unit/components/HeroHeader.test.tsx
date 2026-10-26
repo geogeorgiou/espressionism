@@ -5,6 +5,7 @@ import {
   createRouter,
 } from '@tanstack/react-router'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { HeroHeader } from '@/components/HeroHeader'
@@ -46,5 +47,22 @@ describe('HeroHeader', () => {
     renderHero()
     expect(await screen.findByText('Is that decaf?!')).toBeTruthy()
     window.localStorage.clear()
+  })
+
+  it('scares Bitspresso while the card is hovered', async () => {
+    const user = userEvent.setup()
+    renderHero()
+    const mascot = await screen.findByRole('img', { name: /house mug, happy/ })
+    const card = mascot.parentElement as HTMLElement
+
+    await user.hover(card)
+    expect(screen.getByText("Don't drink me plz!")).toBeTruthy()
+    expect(screen.getByRole('img', { name: /house mug, scared/ })).toBeTruthy()
+    expect(card.className.split(' ')).toContain('animate-shiver')
+
+    await user.unhover(card)
+    expect(screen.queryByText("Don't drink me plz!")).toBeNull()
+    expect(screen.getByRole('img', { name: /house mug, happy/ })).toBeTruthy()
+    expect(card.className.split(' ')).not.toContain('animate-shiver')
   })
 })
