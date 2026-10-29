@@ -21,6 +21,8 @@
     "type-check": "vp check --no-fmt --no-lint",
     "lint": "vp lint",
     "lint:actions": "scripts/lint-actions.sh",
+    "actions:up": "scripts/actions-up.sh && pnpm lint:actions",
+    "actions:outdated": "scripts/actions-up.sh --dry-run",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
     "check": "vp check",
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
+    "actions-up": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },

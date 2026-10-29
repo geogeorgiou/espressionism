@@ -27,6 +27,7 @@ Workflows in `.github/` are linted by [zizmor](https://docs.zizmor.sh): locally 
 - Pin every action to a full commit SHA with a version comment: `uses: owner/repo@<sha> # vX.Y.Z`. Dependabot (`.github/dependabot.yml`, weekly, 7-day cooldown) bumps both together.
 - Every `actions/checkout` sets `persist-credentials: false`.
 - Workflow-level `permissions` stay minimal; grant anything extra per job.
+- Dependabot opens routine update PRs. Use `pnpm actions:up` (actions-up, `scripts/actions-up.sh`) to update sooner or take a major bump by hand; it writes the same `sha # vX.Y.Z` pins with the same 7-day cooldown. Its flags live in that script (actions-up has no config file).
 - The zizmor version is pinned in `zizmor.yml` (`version:`). Dependabot doesn't update it: bump it by hand, alongside your local `brew upgrade zizmor`.
 
 ## Commands
@@ -39,6 +40,7 @@ Run from the repo root:
 - **Format + lint + type check:** `pnpm check` (`pnpm check --fix` to autofix)
 - **Unit tests:** `pnpm test:unit`
 - **Lint GitHub Actions:** `pnpm lint:actions` (zizmor with online audits; needs `brew install zizmor` and `GH_TOKEN` or `gh auth login`)
+- **Update GitHub Actions:** `pnpm actions:up` (interactive actions-up, then zizmor); `pnpm actions:outdated` only reports
 - **E2E tests:** `pnpm test:e2e` (Playwright; builds the app and serves it with `vp preview` on :4173). First run: `pnpm --filter @espressionism/client exec playwright install chromium`
 
 Single test file (from `packages/client/`):
