@@ -31,6 +31,7 @@ export default defineConfig({
   },
   staged: {
     '*': 'vp check --fix',
+    '.github/**/*.{yml,yaml}': 'scripts/lint-actions.sh',
   },
   lint: {
     ignorePatterns: [...generatedPaths, '.claude/**'],
