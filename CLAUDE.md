@@ -146,6 +146,7 @@ test/unit/features/mascot/utils/sprite.test.ts
 
 - Use `@testing-library/user-event` (`userEvent.setup()`) for every interaction; never `fireEvent`.
 - Use `waitFor` for state that updates after an interaction (TanStack Form validates after change/blur).
+- Unit tests run on `pool: 'vmThreads'`: jsdom is created once per worker and each file gets its own VM context. Don't rely on `instanceof` across contexts, and restore any globals a test changes.
 - `test/setup.ts` stubs `window.matchMedia` (light); theme tests override it with `stubMatchMedia` from `test/unit/features/theme/match-media.ts`.
 - jest-dom matchers are not installed; assert on DOM properties directly (`input.valueAsNumber`, `el.textContent`, `el.getAttribute(...)`).
 
