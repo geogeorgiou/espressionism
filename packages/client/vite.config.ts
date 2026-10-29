@@ -30,6 +30,8 @@ const config = defineConfig(({ mode }) => ({
   },
   test: {
     environment: 'jsdom',
+    // One jsdom per worker; each file still runs in its own VM context.
+    pool: 'vmThreads',
     globals: true,
     include: ['test/**/*.test.{ts,tsx}'],
     setupFiles: ['./test/setup.ts'],
