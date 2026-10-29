@@ -18,7 +18,16 @@ pnpm workspace + **Vite+** (`vite-plus`, project-local `vp` CLI).
 - A package script must not share a name with a Vite+ task in that package's `vite.config.ts` (`build` is a task, not a script).
 - Relative imports stay extensionless (no `.ts` / `.tsx`).
 - Shared dependency versions live in the `catalog` in `pnpm-workspace.yaml`; reference them with `"catalog:"`.
-- Git hooks live in `.vite-hooks/` (pre-commit: `vp staged`; commit-msg: commitlint, Conventional Commits).
+- Git hooks live in `.vite-hooks/` (pre-commit: `vp staged`; commit-msg: commitlint, Conventional Commits). Staged workflow files also go through `scripts/lint-actions.sh` (zizmor).
+
+## GitHub Actions
+
+Workflows in `.github/` are linted by [zizmor](https://docs.zizmor.sh): locally with `pnpm lint:actions`, in CI by `.github/workflows/zizmor.yml`. The CI job uploads SARIF to code scanning and never fails on findings itself; code scanning merge protection blocks the PR. Fix findings rather than suppressing them.
+
+- Pin every action to a full commit SHA with a version comment: `uses: owner/repo@<sha> # vX.Y.Z`. Dependabot (`.github/dependabot.yml`, weekly, 7-day cooldown) bumps both together.
+- Every `actions/checkout` sets `persist-credentials: false`.
+- Workflow-level `permissions` stay minimal; grant anything extra per job.
+- The zizmor version is pinned in `zizmor.yml` (`version:`). Dependabot doesn't update it: bump it by hand, alongside your local `brew upgrade zizmor`.
 
 ## Commands
 
@@ -29,6 +38,7 @@ Run from the repo root:
 - **Build (cached):** `pnpm build`
 - **Format + lint + type check:** `pnpm check` (`pnpm check --fix` to autofix)
 - **Unit tests:** `pnpm test:unit`
+- **Lint GitHub Actions:** `pnpm lint:actions` (zizmor with online audits; needs `brew install zizmor` and `GH_TOKEN` or `gh auth login`)
 - **E2E tests:** `pnpm test:e2e` (Playwright; builds the app and serves it with `vp preview` on :4173). First run: `pnpm --filter @espressionism/client exec playwright install chromium`
 
 Single test file (from `packages/client/`):
