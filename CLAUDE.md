@@ -63,12 +63,18 @@ src/
 ├── features/
 │   ├── calculator/
 │   │   ├── components/  — CalculatorForm, VerdictPanel, StatsGrid, *Chart
-│   │   ├── constants/   — defaults, Zod schemas (form + URL search)
+│   │   ├── constants/   — defaults, Zod schemas (form + URL search + agent fill)
+│   │   ├── hooks/       — useCalculatorTool (WebMCP `fill_calculator`)
 │   │   ├── pages/       — CalculatorPage
-│   │   └── utils/       — cost-model (pure), format, form-options
+│   │   └── utils/       — cost-model (pure), agent-fill, format, form-options, inputs
 │   ├── mascot/
 │   │   ├── components/  — Bitspresso (SVG pixel renderer)
 │   │   └── utils/       — sprite (text sprites, faces, flavors)
+│   ├── webmcp/
+│   │   ├── components/  — WebMcpBanner (strip above both headers)
+│   │   ├── hooks/       — useWebMcpTool, useModelContextSync, useToolInvokedAt
+│   │   ├── stores/      — useWebMcpStore (zustand tool registry)
+│   │   └── utils/       — getModelContext, startModelContextSync
 │   ├── theme/
 │   │   ├── components/  — ThemeSwitcher (dropdown in both headers)
 │   │   ├── hooks/       — useTheme (theme, isDark, setTheme)
@@ -110,6 +116,16 @@ Always use **TanStack Form** through the app hook in `features/common/form/form.
 - Share options between `useAppForm` and `withForm` with `formOptions(...)` (see `calculator/utils/form-options.ts`).
 - Read form state with `useSelector(form.store, selector)` from `@tanstack/react-form`. `useStore` is a deprecated alias and is blocked by lint.
 - The calculator syncs valid values to the URL search params through a debounced form listener, so results are shareable.
+
+### WebMCP
+
+The page offers tools to in-browser AI agents through [WebMCP](https://webmachinelearning.github.io/webmcp/) (`document.modelContext`; types from `webmcp-types`, listed in `tsconfig.json` `types`).
+
+- Tools live in a zustand store (`features/webmcp/stores/webmcp-store.ts`). Components offer a tool with `useWebMcpTool(tool)` while mounted; `useModelContextSync()` in `SiteHeader` mirrors the store to `document.modelContext.registerTool`, unregistering by aborting each tool's `signal` (there is no `unregisterTool`).
+- `useWebMcpTool` reads `execute` through a ref, but `inputSchema` and `annotations` are the tool's identity: keep them module constants, or the tool re-registers every render.
+- Derive `inputSchema` from Zod with `z.toJSONSchema`. Put agent-facing descriptions on the schema with `.meta({ description })` as the **last** call in each chain, and prefer checks that map to JSON Schema (`.gt`, `.int`, `.max`) over `.refine`, which `toJSONSchema` drops.
+- `fill_calculator` (`calculator/hooks/use-calculator-tool.ts`) validates with the pure `applyAgentFill` (any subset of fields, merged onto the form values), sets each sent field with `form.setFieldValue` so validation and the URL sync run as if typed, and returns `agentFillResult` (values, summary, verdict, message) or `{ ok: false, errors }`. A successful call makes the verdict mascots hop and shows "Filled by your agent".
+- Unit tests stub `document.modelContext` with `stubModelContext` from `test/unit/features/webmcp/model-context.ts` (restore it in `finally`/`afterEach`, and reset the store with `resetWebMcpStore`). Playwright's Chromium has no WebMCP, so `test/e2e/webmcp.spec.ts` stubs it with `addInitScript` and calls the captured tool's `execute`.
 
 ### Charts: react-charts (TanStack Charts)
 
