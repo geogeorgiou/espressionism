@@ -1,3 +1,5 @@
+import { clsx } from 'clsx'
+
 import { Bitspresso } from '@/features/mascot/components/Bitspresso'
 import type { MascotFlavor, MascotMood } from '@/features/mascot/utils/sprite'
 
@@ -11,6 +13,8 @@ interface VerdictPanelProps {
   years: number
   currency: Currency
   flavor: MascotFlavor
+  /** When an agent last filled the form over WebMCP, or null if never. */
+  agentFilledAt?: number | null
 }
 
 const MOODS: Record<Verdict, { mug: MascotMood; togo: MascotMood }> = {
@@ -36,8 +40,14 @@ export function VerdictPanel({
   years,
   currency,
   flavor,
+  agentFilledAt = null,
 }: VerdictPanelProps) {
   const moods = MOODS[verdict]
+  // Each agent fill remounts the mascots (key) so the one-shot hop replays.
+  const mascotClass = clsx(
+    'size-28 group-hover:animate-hop motion-reduce:group-hover:animate-none sm:size-36',
+    agentFilledAt !== null && 'animate-hop motion-reduce:animate-none',
+  )
   const winsHome = summary.netSavings > 0
   const net = formatMoney(Math.abs(summary.netSavings), currency)
 
@@ -47,13 +57,19 @@ export function VerdictPanel({
       aria-live="polite"
       className="flex flex-col gap-5 rounded-lg border-4 border-foreground bg-screen p-5 text-screen-foreground shadow-pixel-lg"
     >
+      {agentFilledAt !== null && (
+        <p className="self-center bg-screen-foreground px-2.5 py-1 font-pixel text-xs text-screen">
+          Filled by your agent
+        </p>
+      )}
       <div className="flex items-end justify-center gap-4 sm:gap-8">
         <figure className="group flex flex-col items-center gap-2">
           <Bitspresso
+            key={agentFilledAt}
             form="togo"
             mood={moods.togo}
             flavor={flavor}
-            className="size-28 group-hover:animate-hop motion-reduce:group-hover:animate-none sm:size-36"
+            className={mascotClass}
           />
           <figcaption className="font-pixel text-xs tracking-wide opacity-80">
             To go
@@ -64,10 +80,11 @@ export function VerdictPanel({
         </span>
         <figure className="group flex flex-col items-center gap-2">
           <Bitspresso
+            key={agentFilledAt}
             form="mug"
             mood={moods.mug}
             flavor={flavor}
-            className="size-28 group-hover:animate-hop motion-reduce:group-hover:animate-none sm:size-36"
+            className={mascotClass}
           />
           <figcaption className="font-pixel text-xs tracking-wide opacity-80">
             For here

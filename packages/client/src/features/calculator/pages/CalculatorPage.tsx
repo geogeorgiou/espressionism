@@ -2,6 +2,7 @@ import { useSelector } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 
 import { useAppForm } from '@/features/common/form/form'
+import { useToolInvokedAt } from '@/features/webmcp/hooks/use-webmcp-tool'
 import { Route } from '@/routes/index'
 
 import { CalculatorForm } from '../components/CalculatorForm'
@@ -12,14 +13,13 @@ import { VerdictPanel } from '../components/VerdictPanel'
 import { YearlySpendChart } from '../components/YearlySpendChart'
 import type { CalculatorValues } from '../constants'
 import { DEFAULT_INPUTS, calculatorSchema } from '../constants'
-import type { CoffeeInputs } from '../utils/cost-model'
+import {
+  CALCULATOR_TOOL_NAME,
+  useCalculatorTool,
+} from '../hooks/use-calculator-tool'
 import { summarize, verdictFor } from '../utils/cost-model'
 import { calculatorFormOptions } from '../utils/form-options'
-
-function toInputs(values: CalculatorValues): CoffeeInputs {
-  const { drink: _drink, currency: _currency, ...inputs } = values
-  return inputs
-}
+import { toCoffeeInputs } from '../utils/inputs'
 
 export function CalculatorPage() {
   const search = Route.useSearch()
@@ -43,6 +43,13 @@ export function CalculatorPage() {
     },
   })
 
+  // WebMCP: let an agent fill the form through the same path as typing.
+  useCalculatorTool({
+    getValues: () => form.state.values,
+    setValue: (name, value) => form.setFieldValue(name, value),
+  })
+  const agentFilledAt = useToolInvokedAt(CALCULATOR_TOOL_NAME)
+
   // Results follow the last valid answers: while a field is half-typed or
   // invalid, fall back to what's in the URL (the last valid, synced values).
   const values = useSelector(form.store, (state) => state.values)
@@ -50,7 +57,7 @@ export function CalculatorPage() {
   const committed: CalculatorValues = parsed.success
     ? parsed.data
     : { ...DEFAULT_INPUTS, ...search }
-  const inputs = toInputs(committed)
+  const inputs = toCoffeeInputs(committed)
   const summary = summarize(inputs)
   const verdict = verdictFor(summary, inputs.years)
 
@@ -79,6 +86,7 @@ export function CalculatorPage() {
           years={inputs.years}
           currency={committed.currency}
           flavor={committed.drink}
+          agentFilledAt={agentFilledAt}
         />
         <StatsGrid
           summary={summary}
