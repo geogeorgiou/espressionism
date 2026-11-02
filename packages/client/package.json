@@ -9,7 +9,6 @@
     "dev": "vp dev --port 3000",
     "preview": "vp preview",
     "test": "vp test run",
-    "test:unit": "vp test run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
