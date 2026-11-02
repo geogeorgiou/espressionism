@@ -8,7 +8,7 @@ export type WebMcpStatus = 'checking' | 'available' | 'unavailable' | 'error'
 
 /**
  * WebMCP state the whole app can read: each registered tool's status (set
- * by `useByteGradWebMcpTool`) and when each last ran successfully.
+ * by `useWebMcpTool`) and when each last ran successfully.
  */
 interface WebMcpState {
   statuses: Record<string, WebMcpStatus>

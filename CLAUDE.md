@@ -72,7 +72,7 @@ src/
 │   │   └── utils/       — sprite (text sprites, faces, flavors)
 │   ├── webmcp/
 │   │   ├── components/  — WebMcpBanner (status strip above both headers)
-│   │   ├── hooks/       — useByteGradWebMcpTool, useWebMcpSummary, useToolInvokedAt
+│   │   ├── hooks/       — useWebMcpTool, useWebMcpSummary, useToolInvokedAt
 │   │   ├── stores/      — useWebMcpStore (zustand: tool statuses, last calls)
 │   │   └── utils/       — getModelContext, summarizeStatuses
 │   ├── theme/
@@ -121,7 +121,7 @@ Always use **TanStack Form** through the app hook in `features/common/form/form.
 
 The page offers tools to in-browser AI agents through [WebMCP](https://webmachinelearning.github.io/webmcp/) (`document.modelContext`; types from `webmcp-types`, listed in `tsconfig.json` `types`).
 
-- Register a tool with `useByteGradWebMcpTool(tool)`: it calls `document.modelContext.registerTool` while the component is mounted, unregisters by aborting the tool's `signal` (there is no `unregisterTool`), and returns its status: `checking`, `available`, `unavailable` (no WebMCP) or `error` (the browser refused it).
+- Register a tool with `useWebMcpTool(tool)`: it calls `document.modelContext.registerTool` while the component is mounted, unregisters by aborting the tool's `signal` (there is no `unregisterTool`), and returns its status: `checking`, `available`, `unavailable` (no WebMCP) or `error` (the browser refused it).
 - A module-level map keeps one live registration per tool name: a newer mount (Strict Mode's second effect run, HMR) aborts the older one first, so the browser never sees a duplicate name. Aborting a pending registration rejects it with the abort reason; that's ignored, only real refusals warn and set `error`.
 - Statuses live in a zustand store (`features/webmcp/stores/webmcp-store.ts`) so anything can show them. `useWebMcpSummary()` sums them up for the page (`summarizeStatuses`); `WebMcpBanner` renders it, with the status on `data-status`.
 - `execute` is read through a ref, but `inputSchema` and `annotations` are the tool's identity: keep them module constants, or the tool re-registers every render.

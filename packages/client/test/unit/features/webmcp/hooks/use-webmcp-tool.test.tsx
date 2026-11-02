@@ -1,19 +1,19 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 
-import { useByteGradWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
+import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
 import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
 
 import { fakeTool, resetWebMcpStore, stubModelContext } from '../model-context'
 
-describe('useByteGradWebMcpTool', () => {
+describe('useWebMcpTool', () => {
   afterEach(() => {
     resetWebMcpStore()
     vi.restoreAllMocks()
   })
 
   it('is unavailable when the browser has no WebMCP', () => {
-    const { result } = renderHook(() => useByteGradWebMcpTool(fakeTool('calc')))
+    const { result } = renderHook(() => useWebMcpTool(fakeTool('calc')))
     expect(result.current).toBe('unavailable')
     expect(useWebMcpStore.getState().statuses).toEqual({ calc: 'unavailable' })
   })
@@ -21,9 +21,7 @@ describe('useByteGradWebMcpTool', () => {
   it('registers the tool and becomes available', async () => {
     const stub = stubModelContext()
     try {
-      const { result } = renderHook(() =>
-        useByteGradWebMcpTool(fakeTool('calc')),
-      )
+      const { result } = renderHook(() => useWebMcpTool(fakeTool('calc')))
       expect(result.current).toBe('checking')
       await waitFor(() => expect(result.current).toBe('available'))
       expect(stub.registerTool).toHaveBeenCalledTimes(1)
@@ -37,10 +35,9 @@ describe('useByteGradWebMcpTool', () => {
     const stub = stubModelContext()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
-      const { result } = renderHook(
-        () => useByteGradWebMcpTool(fakeTool('calc')),
-        { reactStrictMode: true },
-      )
+      const { result } = renderHook(() => useWebMcpTool(fakeTool('calc')), {
+        reactStrictMode: true,
+      })
       await waitFor(() => expect(result.current).toBe('available'))
       // The first run's registration was aborted before the second one.
       expect(stub.tools.size).toBe(1)
@@ -56,9 +53,7 @@ describe('useByteGradWebMcpTool', () => {
     try {
       const refusal = new DOMException('Bad schema', 'TypeError')
       stub.registerTool.mockRejectedValueOnce(refusal)
-      const { result } = renderHook(() =>
-        useByteGradWebMcpTool(fakeTool('calc')),
-      )
+      const { result } = renderHook(() => useWebMcpTool(fakeTool('calc')))
       await waitFor(() => expect(result.current).toBe('error'))
       expect(warn).toHaveBeenCalledWith(
         'WebMCP: couldn\'t register "calc"',
@@ -73,7 +68,7 @@ describe('useByteGradWebMcpTool', () => {
     const stub = stubModelContext()
     try {
       const { result, unmount } = renderHook(() =>
-        useByteGradWebMcpTool(fakeTool('calc')),
+        useWebMcpTool(fakeTool('calc')),
       )
       await waitFor(() => expect(result.current).toBe('available'))
       unmount()
@@ -89,7 +84,7 @@ describe('useByteGradWebMcpTool', () => {
     try {
       const { result, rerender } = renderHook(
         ({ answer }) =>
-          useByteGradWebMcpTool({
+          useWebMcpTool({
             ...fakeTool('calc'),
             execute: () => answer,
           }),

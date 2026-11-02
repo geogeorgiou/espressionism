@@ -22,9 +22,7 @@ const activeRegistrations = new Map<string, AbortController>()
  * the definition is the tool's identity: keep `inputSchema` and
  * `annotations` stable (module constants), since changing them re-registers.
  */
-export function useByteGradWebMcpTool(
-  tool: WebMCP.ModelContextTool,
-): WebMcpStatus {
+export function useWebMcpTool(tool: WebMCP.ModelContextTool): WebMcpStatus {
   const executeRef = useRef(tool.execute)
   useEffect(() => {
     executeRef.current = tool.execute

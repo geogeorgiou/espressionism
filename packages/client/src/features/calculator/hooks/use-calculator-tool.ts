@@ -1,4 +1,4 @@
-import { useByteGradWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
+import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
 import type { WebMcpStatus } from '@/features/webmcp/stores/webmcp-store'
 import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
 
@@ -32,7 +32,7 @@ export function useCalculatorTool({
   getValues,
   setValue,
 }: CalculatorFormHandle): WebMcpStatus {
-  return useByteGradWebMcpTool({
+  return useWebMcpTool({
     name: CALCULATOR_TOOL_NAME,
     title: 'Fill the calculator',
     description:
