@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vite-plus/test'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
 import { startModelContextSync } from '@/features/webmcp/utils/model-context'
@@ -56,6 +56,52 @@ describe('startModelContextSync', () => {
       expect(stub.tools.get('calc')).toBe(replacement)
       stop()
     } finally {
+      stub.restore()
+    }
+  })
+
+  it('stays quiet when its own unregister rejects a pending registration', async () => {
+    const stub = stubModelContext()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      // Per spec, aborting before the registration settles rejects it.
+      stub.registerTool.mockImplementation(
+        (_tool, options = {}) =>
+          new Promise((_resolve, reject) => {
+            options.signal?.addEventListener('abort', () =>
+              reject(options.signal?.reason),
+            )
+          }),
+      )
+      const stop = startModelContextSync()
+      useWebMcpStore.getState().addTool(fakeTool('calc'))
+      useWebMcpStore.getState().removeTool('calc')
+      await Promise.resolve()
+      expect(warn).not.toHaveBeenCalled()
+      stop()
+    } finally {
+      warn.mockRestore()
+      stub.restore()
+    }
+  })
+
+  it('warns when the browser refuses a registration', async () => {
+    const stub = stubModelContext()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const refusal = new DOMException('Duplicate tool', 'InvalidStateError')
+      stub.registerTool.mockRejectedValueOnce(refusal)
+      const stop = startModelContextSync()
+      useWebMcpStore.getState().addTool(fakeTool('calc'))
+      await vi.waitFor(() =>
+        expect(warn).toHaveBeenCalledWith(
+          'WebMCP: couldn\'t register "calc"',
+          refusal,
+        ),
+      )
+      stop()
+    } finally {
+      warn.mockRestore()
       stub.restore()
     }
   })

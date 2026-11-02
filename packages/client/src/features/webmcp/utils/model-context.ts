@@ -35,6 +35,9 @@ export function startModelContextSync(): () => void {
       modelContext
         .registerTool(tool, { signal: controller.signal })
         .catch((error: unknown) => {
+          // Unregistering before the browser settles the registration rejects
+          // it with the abort reason (React's dev double effects do this).
+          if (controller.signal.aborted) return
           console.warn(`WebMCP: couldn't register "${tool.name}"`, error)
         })
     }
