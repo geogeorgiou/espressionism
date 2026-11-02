@@ -86,10 +86,18 @@ Run from the repo root:
 
 The calculator offers one [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tool, `fill_calculator`. An agent in the browser can send any of the inputs (usual drink, café price, cups a day, machine price, …) and get back the break-even, the totals and a one-line verdict. The form fills in as if you'd typed it, and the URL updates so the result stays shareable. A banner at the top of the page says whether WebMCP is on.
 
-WebMCP is a proposed web standard that's still in an early preview. To try it:
+WebMCP is a proposed web standard that's still in an early preview. Enabling the Chrome flag only lets the page register tools; you also need an agent that reads them. Agents that drive the page through the DOM (most browser-automation extensions) don't see WebMCP tools and fall back to typing into the form.
+
+Prerequisites:
+
+- Chrome with the `chrome://flags/#enable-webmcp-testing` flag (below).
+- The [WebMCP Model Context Tool Inspector](https://chromewebstore.google.com/detail/webmcp-model-context-tool/gbpdfapgefenggkahomfgkhfehlcenpd) extension, or another extension that speaks WebMCP.
+- A Gemini API key from [Google AI Studio](https://aistudio.google.com/), for the Inspector's chat.
+
+To try it:
 
 1. Use Chrome and open `chrome://flags/#enable-webmcp-testing`. Set it to **Enabled** and relaunch Chrome.
-2. Install the [Model Context Tool Inspector](https://chromewebstore.google.com/detail/model-context-tool-inspec/gbpdfapgefenggkahomfgkhfehlcenpd) extension. It lists a page's tools, lets you run them by hand and chat with Gemini (bring your own Gemini API key).
+2. Install the Inspector and pin it from the puzzle-piece menu next to the address bar. It lists a page's tools, lets you run them by hand and chat with Gemini once you paste in your API key.
 3. Open Espressionism (`pnpm dev`, then http://localhost:3000). The banner should read "WebMCP on: 1 tool ready for your agent".
 4. Ask the agent something like:
 
