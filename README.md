@@ -39,7 +39,7 @@ The mascot is **Bitspresso**, an 8-bit coffee character drawn as a 20×20 text s
 | Framework       | [TanStack Start](https://tanstack.com/start) (SPA mode) on [React 19](https://react.dev)                                                                   |
 | Routing         | [TanStack Router](https://tanstack.com/router) with type-safe, URL-validated search params                                                                 |
 | Forms           | [TanStack Form](https://tanstack.com/form) + [Zod](https://zod.dev) validation                                                                             |
-| AI agents       | [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tools, registered through a [Zustand](https://zustand.docs.pmnd.rs) store                            |
+| AI agents       | [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tools, with their status kept in a [Zustand](https://zustand.docs.pmnd.rs) store                     |
 | Charts          | [react-charts](https://react-charts.tanstack.com) (TanStack Charts)                                                                                        |
 | UI              | [shadcn/ui](https://ui.shadcn.com) on [Radix UI](https://www.radix-ui.com), [Tailwind CSS v4](https://tailwindcss.com), [Lucide](https://lucide.dev) icons |
 | Fonts           | [Silkscreen](https://fonts.google.com/specimen/Silkscreen) for pixel headings, [Karla](https://fonts.google.com/specimen/Karla) for body text              |
@@ -117,7 +117,7 @@ packages/
       features/
         calculator/   form, verdict, stats, charts and the WebMCP tool
         mascot/       Bitspresso sprites and SVG renderer
-        webmcp/       tool registry (Zustand), browser sync and banner
+        webmcp/       tool registration hook, status store (Zustand) and banner
         common/       shared form fields, ChartCard, hooks
       routes/         thin route entry points
     test/unit/        tests mirroring src/features

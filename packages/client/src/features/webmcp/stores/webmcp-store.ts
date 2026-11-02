@@ -1,33 +1,33 @@
 import { create } from 'zustand'
 
 /**
- * Registry of the WebMCP tools the page offers right now. Components add and
- * remove tools here; `startModelContextSync` mirrors them to the browser.
+ * Where a tool's registration stands: still registering, live for agents,
+ * the browser has no WebMCP, or the browser refused it.
+ */
+export type WebMcpStatus = 'checking' | 'available' | 'unavailable' | 'error'
+
+/**
+ * WebMCP state the whole app can read: each registered tool's status (set
+ * by `useByteGradWebMcpTool`) and when each last ran successfully.
  */
 interface WebMcpState {
-  tools: Record<string, WebMCP.ModelContextTool>
-  /** Whether the browser exposes `document.modelContext`. */
-  supported: boolean
-  /** When each tool last finished a call successfully, by tool name. */
+  statuses: Record<string, WebMcpStatus>
   invokedAt: Record<string, number>
-  addTool: (tool: WebMCP.ModelContextTool) => void
-  removeTool: (name: string) => void
-  setSupported: (supported: boolean) => void
+  setStatus: (name: string, status: WebMcpStatus) => void
+  clearStatus: (name: string) => void
   recordInvocation: (name: string) => void
 }
 
 export const useWebMcpStore = create<WebMcpState>()((set) => ({
-  tools: {},
-  supported: false,
+  statuses: {},
   invokedAt: {},
-  addTool: (tool) =>
-    set((state) => ({ tools: { ...state.tools, [tool.name]: tool } })),
-  removeTool: (name) =>
+  setStatus: (name, status) =>
+    set((state) => ({ statuses: { ...state.statuses, [name]: status } })),
+  clearStatus: (name) =>
     set((state) => {
-      const { [name]: _removed, ...tools } = state.tools
-      return { tools }
+      const { [name]: _cleared, ...statuses } = state.statuses
+      return { statuses }
     }),
-  setSupported: (supported) => set({ supported }),
   recordInvocation: (name) =>
     set((state) => ({ invokedAt: { ...state.invokedAt, [name]: Date.now() } })),
 }))

@@ -4,16 +4,12 @@ import { HeroHeader } from '@/components/HeroHeader'
 import { Bitspresso } from '@/features/mascot/components/Bitspresso'
 import { ThemeSwitcher } from '@/features/theme/components/ThemeSwitcher'
 import { WebMcpBanner } from '@/features/webmcp/components/WebMcpBanner'
-import { useModelContextSync } from '@/features/webmcp/hooks/use-webmcp-tool'
 
 /**
  * Compact header on phones and tablets; the full landing hero from `lg` up.
- * Both sit under the WebMCP banner, and the shell keeps the page's WebMCP
- * tools registered with the browser.
+ * Both sit under the WebMCP banner.
  */
 export function SiteHeader() {
-  useModelContextSync()
-
   return (
     <>
       <WebMcpBanner />

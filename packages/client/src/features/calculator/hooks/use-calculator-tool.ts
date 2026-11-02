@@ -1,4 +1,5 @@
-import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
+import { useByteGradWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
+import type { WebMcpStatus } from '@/features/webmcp/stores/webmcp-store'
 import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
 
 import type { CalculatorValues } from '../constants'
@@ -25,12 +26,13 @@ interface CalculatorFormHandle {
  * Registers `fill_calculator`: an agent sends any subset of the fields, they
  * land on the form as if typed (validation, URL sync), and the tool returns
  * the result. Invalid input changes nothing and returns the errors.
+ * Returns the tool's WebMCP status.
  */
 export function useCalculatorTool({
   getValues,
   setValue,
-}: CalculatorFormHandle) {
-  useWebMcpTool({
+}: CalculatorFormHandle): WebMcpStatus {
+  return useByteGradWebMcpTool({
     name: CALCULATOR_TOOL_NAME,
     title: 'Fill the calculator',
     description:

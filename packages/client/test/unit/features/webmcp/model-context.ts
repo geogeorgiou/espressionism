@@ -3,8 +3,9 @@ import { vi } from 'vite-plus/test'
 import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
 
 /**
- * Gives jsdom a fake `document.modelContext` that tracks live registrations
- * (a tool drops out when its signal aborts). Call `restore` in afterEach.
+ * Gives jsdom a fake `document.modelContext` that behaves like the spec: a
+ * name can be registered once (a duplicate rejects with InvalidStateError)
+ * and a tool drops out when its signal aborts. Call `restore` afterwards.
  */
 export function stubModelContext() {
   const tools = new Map<string, WebMCP.ModelContextTool>()
@@ -13,6 +14,9 @@ export function stubModelContext() {
       tool: WebMCP.ModelContextTool,
       options: WebMCP.ModelContextRegisterToolOptions = {},
     ) => {
+      if (tools.has(tool.name)) {
+        throw new DOMException(`Duplicate ${tool.name}`, 'InvalidStateError')
+      }
       tools.set(tool.name, tool)
       options.signal?.addEventListener('abort', () => {
         if (tools.get(tool.name) === tool) tools.delete(tool.name)
@@ -31,7 +35,7 @@ export function stubModelContext() {
 }
 
 export function resetWebMcpStore() {
-  useWebMcpStore.setState({ tools: {}, supported: false, invokedAt: {} })
+  useWebMcpStore.setState({ statuses: {}, invokedAt: {} })
 }
 
 export function fakeTool(

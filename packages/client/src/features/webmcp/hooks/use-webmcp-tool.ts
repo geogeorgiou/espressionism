@@ -1,76 +1,90 @@
 import { useEffect, useRef } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
+import type { WebMcpStatus } from '../stores/webmcp-store'
 import { useWebMcpStore } from '../stores/webmcp-store'
-import { startModelContextSync } from '../utils/model-context'
-
-/** Mount once in the app shell: keeps `document.modelContext` in step. */
-export function useModelContextSync() {
-  useEffect(() => startModelContextSync(), [])
-}
-
-type ToolIdentity = Omit<WebMCP.ModelContextTool, 'execute'>
-
-function sameIdentity(a: ToolIdentity, b: ToolIdentity): boolean {
-  return (
-    a.name === b.name &&
-    a.title === b.title &&
-    a.description === b.description &&
-    a.inputSchema === b.inputSchema &&
-    a.annotations === b.annotations
-  )
-}
+import type { WebMcpSummary } from '../utils/model-context'
+import { getModelContext, summarizeStatuses } from '../utils/model-context'
 
 /**
- * Offers a WebMCP tool while the calling component is mounted, registering
- * it a single time.
+ * The live registration per tool name. A newer mount of the same tool
+ * (Strict Mode's second effect run, HMR) aborts the older one first, so the
+ * browser never sees the name twice.
+ */
+const activeRegistrations = new Map<string, AbortController>()
+
+/**
+ * Registers a WebMCP tool with `document.modelContext` while the calling
+ * component is mounted, and returns its status. The status is also kept in
+ * `useWebMcpStore`, so the banner (or anything else) can show it.
  *
  * `execute` may change every render (it's read through a ref). The rest of
  * the definition is the tool's identity: keep `inputSchema` and
  * `annotations` stable (module constants), since changing them re-registers.
  */
-export function useWebMcpTool(tool: WebMCP.ModelContextTool) {
+export function useByteGradWebMcpTool(
+  tool: WebMCP.ModelContextTool,
+): WebMcpStatus {
   const executeRef = useRef(tool.execute)
   useEffect(() => {
     executeRef.current = tool.execute
   })
 
-  // Guard against double registration: what's registered now, and a removal
-  // the cleanup scheduled. Strict Mode runs effect → cleanup → effect; the
-  // second run cancels the pending removal instead of registering again, and
-  // a real unmount lets it fire.
-  const registeredRef = useRef<ToolIdentity | null>(null)
-  const pendingRemovalRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const { name, title, description, inputSchema, annotations } = tool
   useEffect(() => {
-    const identity = { name, title, description, inputSchema, annotations }
-    const { addTool, removeTool } = useWebMcpStore.getState()
+    const { setStatus, clearStatus } = useWebMcpStore.getState()
+    const modelContext = getModelContext()
+    if (!modelContext) {
+      setStatus(name, 'unavailable')
+      return () => clearStatus(name)
+    }
 
-    if (pendingRemovalRef.current !== null) {
-      clearTimeout(pendingRemovalRef.current)
-      pendingRemovalRef.current = null
-    }
-    const registered = registeredRef.current
-    if (registered && !sameIdentity(registered, identity)) {
-      removeTool(registered.name)
-      registeredRef.current = null
-    }
-    if (!registeredRef.current) {
-      addTool({
-        ...identity,
-        execute: (input, options) => executeRef.current(input, options),
+    activeRegistrations.get(name)?.abort()
+    const controller = new AbortController()
+    activeRegistrations.set(name, controller)
+    setStatus(name, 'checking')
+
+    modelContext
+      .registerTool(
+        {
+          name,
+          title,
+          description,
+          inputSchema,
+          annotations,
+          execute: (input, options) => executeRef.current(input, options),
+        },
+        { signal: controller.signal },
+      )
+      .then(() => {
+        if (!controller.signal.aborted) setStatus(name, 'available')
       })
-      registeredRef.current = identity
-    }
+      .catch((error: unknown) => {
+        // Aborting before the browser settles the registration rejects it
+        // with the abort reason: that's us unregistering, not a failure.
+        if (controller.signal.aborted) return
+        console.warn(`WebMCP: couldn't register "${name}"`, error)
+        setStatus(name, 'error')
+      })
 
     return () => {
-      pendingRemovalRef.current = setTimeout(() => {
-        pendingRemovalRef.current = null
-        registeredRef.current = null
-        removeTool(name)
-      }, 0)
+      controller.abort()
+      if (activeRegistrations.get(name) === controller) {
+        activeRegistrations.delete(name)
+        clearStatus(name)
+      }
     }
   }, [name, title, description, inputSchema, annotations])
+
+  return useWebMcpStore((state) => state.statuses[name] ?? 'checking')
+}
+
+/** The page-wide WebMCP status, summed up over every registered tool. */
+export function useWebMcpSummary(): WebMcpSummary {
+  const statuses = useWebMcpStore(
+    useShallow((state) => Object.values(state.statuses)),
+  )
+  return summarizeStatuses(statuses)
 }
 
 /** When the named tool last finished a call successfully, or null. */

@@ -1,56 +1,26 @@
-import { useWebMcpStore } from '../stores/webmcp-store'
+import type { WebMcpStatus } from '../stores/webmcp-store'
 
 /** The browser's WebMCP entry point, if it has one (never during prerender). */
 export function getModelContext(): WebMCP.ModelContext | undefined {
   return typeof document === 'undefined' ? undefined : document.modelContext
 }
 
-interface Registration {
-  tool: WebMCP.ModelContextTool
-  controller: AbortController
+export interface WebMcpSummary {
+  status: WebMcpStatus
+  /** How many tools agents can call right now. */
+  ready: number
 }
 
 /**
- * Mirrors the store's tools to `document.modelContext`: registers new tools
- * and aborts the signal of removed or replaced ones (WebMCP has no
- * `unregisterTool`). Returns a cleanup that unregisters everything.
+ * One status for the whole page: available if any tool is live, otherwise
+ * the most telling problem. No tools yet reads as still checking.
  */
-export function startModelContextSync(): () => void {
-  const modelContext = getModelContext()
-  useWebMcpStore.getState().setSupported(modelContext !== undefined)
-  if (!modelContext) return () => {}
-
-  const registrations = new Map<string, Registration>()
-
-  const sync = (tools: Record<string, WebMCP.ModelContextTool>) => {
-    for (const [name, registration] of registrations) {
-      if (tools[name] === registration.tool) continue
-      registration.controller.abort()
-      registrations.delete(name)
-    }
-    for (const tool of Object.values(tools)) {
-      if (registrations.has(tool.name)) continue
-      const controller = new AbortController()
-      registrations.set(tool.name, { tool, controller })
-      modelContext
-        .registerTool(tool, { signal: controller.signal })
-        .catch((error: unknown) => {
-          // Unregistering before the browser settles the registration rejects
-          // it with the abort reason (React's dev double effects do this).
-          if (controller.signal.aborted) return
-          console.warn(`WebMCP: couldn't register "${tool.name}"`, error)
-        })
-    }
+export function summarizeStatuses(statuses: WebMcpStatus[]): WebMcpSummary {
+  const ready = statuses.filter((status) => status === 'available').length
+  if (ready > 0) return { status: 'available', ready }
+  if (statuses.includes('error')) return { status: 'error', ready }
+  if (statuses.length === 0 || statuses.includes('checking')) {
+    return { status: 'checking', ready }
   }
-
-  sync(useWebMcpStore.getState().tools)
-  const unsubscribe = useWebMcpStore.subscribe((state, previous) => {
-    if (state.tools !== previous.tools) sync(state.tools)
-  })
-
-  return () => {
-    unsubscribe()
-    for (const { controller } of registrations.values()) controller.abort()
-    registrations.clear()
-  }
+  return { status: 'unavailable', ready }
 }
