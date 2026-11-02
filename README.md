@@ -39,6 +39,7 @@ The mascot is **Bitspresso**, an 8-bit coffee character drawn as a 20×20 text s
 | Framework       | [TanStack Start](https://tanstack.com/start) (SPA mode) on [React 19](https://react.dev)                                                                   |
 | Routing         | [TanStack Router](https://tanstack.com/router) with type-safe, URL-validated search params                                                                 |
 | Forms           | [TanStack Form](https://tanstack.com/form) + [Zod](https://zod.dev) validation                                                                             |
+| AI agents       | [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tools, with their status kept in a [Zustand](https://zustand.docs.pmnd.rs) store                     |
 | Charts          | [react-charts](https://react-charts.tanstack.com) (TanStack Charts)                                                                                        |
 | UI              | [shadcn/ui](https://ui.shadcn.com) on [Radix UI](https://www.radix-ui.com), [Tailwind CSS v4](https://tailwindcss.com), [Lucide](https://lucide.dev) icons |
 | Fonts           | [Silkscreen](https://fonts.google.com/specimen/Silkscreen) for pixel headings, [Karla](https://fonts.google.com/specimen/Karla) for body text              |
@@ -81,6 +82,29 @@ Run from the repo root:
 | `pnpm check --fix` | Same, with autofixes                     |
 | `pnpm test:unit`   | Unit tests                               |
 
+## WebMCP: let an AI agent fill it in
+
+The calculator offers one [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tool, `fill_calculator`. An agent in the browser can send any of the inputs (usual drink, café price, cups a day, machine price, …) and get back the break-even, the totals and a one-line verdict. The form fills in as if you'd typed it, and the URL updates so the result stays shareable. A banner at the top of the page says whether WebMCP is on.
+
+WebMCP is a proposed web standard that's still in an early preview. Enabling the Chrome flag only lets the page register tools; you also need an agent that reads them. Agents that drive the page through the DOM (most browser-automation extensions) don't see WebMCP tools and fall back to typing into the form.
+
+Prerequisites:
+
+- Chrome with the `chrome://flags/#enable-webmcp-testing` flag (below).
+- The [WebMCP Model Context Tool Inspector](https://chromewebstore.google.com/detail/webmcp-model-context-tool/gbpdfapgefenggkahomfgkhfehlcenpd) extension, or another extension that speaks WebMCP.
+- A Gemini API key from [Google AI Studio](https://aistudio.google.com/), for the Inspector's chat.
+
+To try it:
+
+1. Use Chrome and open `chrome://flags/#enable-webmcp-testing`. Set it to **Enabled** and relaunch Chrome.
+2. Install the Inspector and pin it from the puzzle-piece menu next to the address bar. It lists a page's tools, lets you run them by hand and chat with Gemini once you paste in your API key.
+3. Open Espressionism (`pnpm dev`, then http://localhost:3000). The banner should read "WebMCP on: 1 tool ready for your agent".
+4. Ask the agent something like:
+
+   > I buy two lattes a day at €4.20, five days a week. Would a €700 machine pay for itself within three years?
+
+Public sites can join the [WebMCP origin trial](https://developer.chrome.com/origintrials/#/register_trial/4163014905550602241) (Chrome 149+) so visitors don't need the flag. This project doesn't register for it yet.
+
 ## The cost model
 
 All figures assume 52 weeks a year and flat prices.
@@ -99,8 +123,9 @@ packages/
   client/          TanStack Start frontend
     src/
       features/
-        calculator/   form, verdict, stats and charts
+        calculator/   form, verdict, stats, charts and the WebMCP tool
         mascot/       Bitspresso sprites and SVG renderer
+        webmcp/       tool registration hook, status store (Zustand) and banner
         common/       shared form fields, ChartCard, hooks
       routes/         thin route entry points
     test/unit/        tests mirroring src/features

@@ -28,34 +28,50 @@ export const DEFAULT_INPUTS: CalculatorValues = {
 
 const money = (label: string, max: number) =>
   z
-    .number({ invalid_type_error: `${label} is required` })
+    .number({ error: `${label} is required` })
     .min(0, `${label} can't be negative`)
     .max(max, `${label} looks too high`)
 
+const count = (label: string, unit: string) =>
+  z.number({ error: `${label} is required` }).int(`Use whole ${unit}`)
+
+// Descriptions sit last in each chain (`.meta` attaches to that instance) and
+// end up in the WebMCP tool's JSON Schema, so they're written for an agent.
 export const calculatorSchema = z.object({
-  drink: z.enum(MASCOT_FLAVORS),
-  currency: z.enum(CURRENCIES),
-  cafePrice: money('Café price', 50).refine((v) => v > 0, {
-    message: 'Café price must be above zero',
+  drink: z.enum(MASCOT_FLAVORS).meta({
+    description: `The drink usually bought at the café: ${Object.entries(
+      DRINK_LABELS,
+    )
+      .map(([flavor, label]) => `${flavor} (${label})`)
+      .join(', ')}.`,
   }),
-  cupsPerDay: z
-    .number({ invalid_type_error: 'Cups per day is required' })
-    .int('Use whole cups')
+  currency: z
+    .enum(CURRENCIES)
+    .meta({ description: 'Currency for every amount.' }),
+  cafePrice: money('Café price', 50)
+    .gt(0, 'Café price must be above zero')
+    .meta({ description: 'Price of one café drink.' }),
+  cupsPerDay: count('Cups per day', 'cups')
     .min(1, 'At least one cup')
-    .max(10, 'Ten cups is plenty'),
-  daysPerWeek: z
-    .number({ invalid_type_error: 'Days per week is required' })
-    .int('Use whole days')
+    .max(10, 'Ten cups is plenty')
+    .meta({ description: 'Café drinks bought per day.' }),
+  daysPerWeek: count('Days per week', 'days')
     .min(1, 'At least one day')
-    .max(7, 'A week has seven days'),
-  machinePrice: money('Machine price', 20000),
-  homeCostPerCup: money('Home cost per cup', 20),
-  yearlyMaintenance: money('Maintenance', 5000),
-  years: z
-    .number({ invalid_type_error: 'Years is required' })
-    .int('Use whole years')
+    .max(7, 'A week has seven days')
+    .meta({ description: 'Days per week the user buys coffee out.' }),
+  machinePrice: money('Machine price', 20000).meta({
+    description: 'One-off price of the espresso machine, grinder included.',
+  }),
+  homeCostPerCup: money('Home cost per cup', 20).meta({
+    description: 'Beans, milk and power for one cup made at home.',
+  }),
+  yearlyMaintenance: money('Maintenance', 5000).meta({
+    description: 'Yearly descaling, filters and servicing.',
+  }),
+  years: count('Years', 'years')
     .min(1, 'At least one year')
-    .max(10, 'Up to ten years'),
+    .max(10, 'Up to ten years')
+    .meta({ description: 'How many years to compare over.' }),
 })
 
 export type CalculatorValues = z.infer<typeof calculatorSchema>
@@ -74,3 +90,9 @@ export const calculatorSearchSchema = z.object({
 })
 
 export type CalculatorSearch = z.infer<typeof calculatorSearchSchema>
+
+/** What an agent may send to fill the calculator: any subset of the fields. */
+export const agentFillSchema = calculatorSchema.partial().strict()
+
+/** JSON Schema for the WebMCP `fill_calculator` tool, derived from Zod. */
+export const AGENT_FILL_INPUT_SCHEMA = z.toJSONSchema(agentFillSchema)

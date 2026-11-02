@@ -3,13 +3,16 @@ import { Link } from '@tanstack/react-router'
 import { HeroHeader } from '@/components/HeroHeader'
 import { Bitspresso } from '@/features/mascot/components/Bitspresso'
 import { ThemeSwitcher } from '@/features/theme/components/ThemeSwitcher'
+import { WebMcpBanner } from '@/features/webmcp/components/WebMcpBanner'
 
 /**
  * Compact header on phones and tablets; the full landing hero from `lg` up.
+ * Both sit under the WebMCP banner.
  */
 export function SiteHeader() {
   return (
     <>
+      <WebMcpBanner />
       <HeroHeader />
       <header className="border-b-4 border-foreground bg-card lg:hidden">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-5 sm:px-6">

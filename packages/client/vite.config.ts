@@ -26,6 +26,9 @@ const config = defineConfig(({ mode }) => ({
       build: {
         command: 'vp build',
       },
+      'test:unit': {
+        command: 'vp test run',
+      },
     },
   },
   test: {
