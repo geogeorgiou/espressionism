@@ -30,9 +30,13 @@
     "test:e2e": "vp run -r test:e2e",
     "prepare": "vp config --no-agent"
   },
+  "dependencies": {
+    "@espressionism/agent": "workspace:*"
+  },
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
+    "@types/node": "catalog:",
     "actions-up": "catalog:",
     "typescript": "catalog:",
     "vite-plus": "catalog:"

@@ -1,0 +1,15 @@
+{
+  // Covers the Vercel Functions in api/; each package has its own tsconfig.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true
+  },
+  "include": ["api/**/*.ts"]
+}

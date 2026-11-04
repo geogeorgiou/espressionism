@@ -50,10 +50,14 @@ export function ChatLog({ messages, pending }: ChatLogProps) {
             {!mine && <Avatar />}
             <p
               className={clsx(
-                'rounded-md border-2 border-foreground px-3 py-2 text-base',
+                'rounded-md border-2 px-3 py-2 text-base',
                 mine
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'border-foreground bg-primary text-primary-foreground'
                   : 'bg-secondary text-secondary-foreground',
+                !mine &&
+                  (message.failed
+                    ? 'border-dashed border-destructive'
+                    : 'border-foreground'),
               )}
             >
               <span className="sr-only">

@@ -1,0 +1,78 @@
+/**
+ * The HTTP contract between the chat UI and the agent. Pure Zod, no server
+ * code, so the client can import it (`@espressionism/agent/contract`)
+ * without pulling the agent into the browser bundle.
+ */
+import { z } from 'zod'
+
+export const CHAT_ENDPOINT = '/api/chat'
+
+/** Longest question the composer accepts. */
+export const MAX_MESSAGE_LENGTH = 280
+/** Turns of history the agent reads per request. */
+export const MAX_HISTORY = 40
+/** Largest request body the handler reads, in bytes. */
+export const MAX_BODY_BYTES = 32 * 1024
+
+export const chatTurnSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  text: z.string().trim().min(1).max(2000),
+})
+
+/** `POST /api/chat` body: the conversation so far, ending with the user. */
+export const chatRequestSchema = z.object({
+  messages: z
+    .array(chatTurnSchema)
+    .min(1)
+    .max(MAX_HISTORY)
+    .refine((turns) => turns.at(-1)?.role === 'user', {
+      message: 'The last turn must be the user',
+    }),
+})
+
+/** `POST /api/chat` success: Robospresso's answer. */
+export const chatReplySchema = z.object({
+  message: z.object({
+    role: z.literal('assistant'),
+    text: z.string(),
+  }),
+})
+
+/** Any error from the agent. */
+export const chatErrorSchema = z.object({ error: z.string() })
+
+/** One espresso machine from the Skroutz listing (roadmap steps 2–4). */
+export const machineSchema = z.object({
+  name: z.string().min(1),
+  price: z.number().nonnegative(),
+  currency: z.literal('EUR'),
+  /** 0–5 stars; null when the listing shows no rating yet. */
+  rating: z.number().min(0).max(5).nullable(),
+  reviewCount: z.number().int().nonnegative(),
+  url: z.url(),
+})
+
+/**
+ * What the search tool returns: the cached listing, filtered and sorted in
+ * memory. Skroutz itself never sees these filters.
+ */
+export const searchResultSchema = z.object({
+  query: z.literal('espresso machine'),
+  source: z.literal('skroutz.gr'),
+  fetchedAt: z.iso.datetime(),
+  filters: z.object({
+    minPrice: z.number().nonnegative().optional(),
+    maxPrice: z.number().nonnegative().optional(),
+    minRating: z.number().min(0).max(5).optional(),
+  }),
+  sort: z.enum(['price_asc', 'price_desc', 'rating_desc']),
+  total: z.number().int().nonnegative(),
+  items: z.array(machineSchema),
+})
+
+export type ChatTurn = z.infer<typeof chatTurnSchema>
+export type ChatRequest = z.infer<typeof chatRequestSchema>
+export type ChatReply = z.infer<typeof chatReplySchema>
+export type ChatError = z.infer<typeof chatErrorSchema>
+export type Machine = z.infer<typeof machineSchema>
+export type SearchResult = z.infer<typeof searchResultSchema>

@@ -3,11 +3,14 @@
 ## Monorepo structure
 
 ```
+api/
+  chat.ts   — Vercel Function: POST /api/chat, a thin adapter over the agent
 packages/
+  agent/    — @espressionism/agent: Robospresso's brain (framework-free)
   client/   — TanStack Start frontend (SPA mode)
 ```
 
-The layout mirrors `fullstack-app-starter`; a `backend/` package can be added beside `client/` later.
+The layout mirrors `fullstack-app-starter`. Vercel serves the client's static build and runs `api/*.ts` as functions; see [Agent](#agent-packagesagent).
 
 ## Toolchain
 
@@ -49,6 +52,24 @@ Single test file (from `packages/client/`):
 pnpm exec vp test run test/unit/features/calculator/utils/cost-model.test.ts
 ```
 
+## Agent (`packages/agent/`)
+
+Everything behind the chat lives here, with no framework: `createChatHandler(config)` returns `(request: Request) => Promise<Response>`, so any host can serve it in a few lines. Today it answers with a placeholder (`persona.ts`); the scraper, cache, tool and model land here in later steps.
+
+```
+src/
+├── contract.ts  — Zod HTTP contract (request, reply, error, machine, search result)
+├── handler.ts   — createChatHandler: POST only, 32 KB cap, validation, no leaked errors
+├── persona.ts   — Robospresso's placeholder reply
+└── index.ts     — public API (re-exports the contract)
+test/unit/       — handler tests (Vitest, node environment)
+```
+
+- **Two entry points.** `@espressionism/agent` is the server runtime: `exports.default` points at the bundle `vp pack` writes to `dist/index.mjs` (types come from `src`). `@espressionism/agent/contract` is TypeScript source with no server code, safe to import in the browser; the client validates replies with it.
+- **Hosts.** On Vercel, `api/chat.ts` exports `POST` and calls the handler; the root `pnpm build` builds the agent before Vercel bundles the function, and the `vercel.json` rewrite skips `/api/`. Locally, `packages/client/vite/agent-api.ts` serves the same handler at `/api/chat`: `pnpm dev` loads the agent's source through Vite (no build needed), `vp preview` (and so the e2e tests) imports the built package. The client's `build` task depends on the agent's build for that reason.
+- **One handler per process.** Create the handler once (module scope), not per request: later steps keep the listing cache inside it.
+- **Contract changes** go in `contract.ts` with a matching handler test; the client's `fetchReply` parses replies with `chatReplySchema`.
+
 ## Client architecture (`packages/client/`)
 
 **TanStack Start** (React 19 + TanStack Router, SPA mode), **shadcn/ui** on Tailwind CSS v4, **TanStack Form** for forms, **react-charts** (TanStack Charts) for charts. No React Compiler: memoize by hand where it matters.
@@ -69,9 +90,9 @@ src/
 │   │   └── utils/       — cost-model (pure), agent-fill, format, form-options, inputs
 │   ├── chat/
 │   │   ├── components/  — ChatPanel ("Ask Robospresso"), ChatLog, ChatComposer
-│   │   ├── constants/   — Zod composer schema, greeting, suggestions
-│   │   ├── hooks/       — useChat (messages, pending, send; stub reply for now)
-│   │   └── utils/       — messages (types, stub reply)
+│   │   ├── constants/   — Zod composer schema, greeting, suggestions, error reply
+│   │   ├── hooks/       — useChat (messages, pending, send over a ChatTransport)
+│   │   └── utils/       — messages (types, fetchReply → POST /api/chat, toTurns)
 │   ├── mascot/
 │   │   ├── components/  — Bitspresso, Robospresso (SVG pixel renderers), PixelRect
 │   │   └── utils/       — sprite (text sprites, faces, flavors), robot-sprite

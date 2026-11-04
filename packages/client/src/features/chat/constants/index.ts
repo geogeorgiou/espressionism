@@ -1,6 +1,7 @@
+import { MAX_MESSAGE_LENGTH } from '@espressionism/agent/contract'
 import { z } from 'zod'
 
-export const MAX_MESSAGE_LENGTH = 280
+export { MAX_MESSAGE_LENGTH }
 
 /** The composer's form: one trimmed, non-empty question. */
 export const chatMessageSchema = z.object({
@@ -25,5 +26,6 @@ export const CHAT_SUGGESTIONS = [
   'Show me the 5 cheapest',
 ] as const
 
-/** How long the stub "searches" before it answers. */
-export const STUB_REPLY_DELAY_MS = 700
+/** Shown when the agent can't be reached or answers with an error. */
+export const CHAT_ERROR_REPLY =
+  'My circuits got a little over-extracted. Give it another go in a sec?'

@@ -4,6 +4,8 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { defineConfig } from 'vite-plus'
 
+import { agentApi } from './vite/agent-api'
+
 const config = defineConfig(({ mode }) => ({
   resolve: { tsconfigPaths: true },
   // Unit tests render components in jsdom; the app shell plugins
@@ -20,11 +22,15 @@ const config = defineConfig(({ mode }) => ({
             spa: { enabled: true, prerender: { outputPath: '/index' } },
           }),
           viteReact(),
+          // /api/chat in dev and preview, served by @espressionism/agent
+          agentApi(),
         ],
   run: {
     tasks: {
       build: {
         command: 'vp build',
+        // `vp preview` serves the built agent at /api, so build it first.
+        dependsOn: [{ task: 'build', from: 'dependencies' }],
       },
       'test:unit': {
         command: 'vp test run',

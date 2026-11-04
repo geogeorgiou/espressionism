@@ -1,21 +1,22 @@
 import { Robospresso } from '@/features/mascot/components/Robospresso'
 
 import { useChat } from '../hooks/use-chat'
+import type { ChatTransport } from '../utils/messages'
 import { ChatComposer } from './ChatComposer'
 import { ChatLog } from './ChatLog'
 
 interface ChatPanelProps {
-  /** Forwarded to the stub reply; tests pass 0. */
-  replyDelayMs?: number
+  /** How questions reach the agent; defaults to `POST /api/chat`. */
+  transport?: ChatTransport
 }
 
 /**
  * "Ask Robospresso": a chat about espresso machines listed on Skroutz, run by
  * Bitspresso's robot cousin.
- * Step 1 of the plan: the interface only, answered by a local stub.
+ * Answers come from `@espressionism/agent` at `/api/chat`.
  */
-export function ChatPanel({ replyDelayMs }: ChatPanelProps) {
-  const { messages, pending, send } = useChat({ replyDelayMs })
+export function ChatPanel({ transport }: ChatPanelProps) {
+  const { messages, pending, send } = useChat({ transport })
 
   return (
     <section
