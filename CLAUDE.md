@@ -54,6 +54,8 @@ pnpm exec vp test run test/unit/features/calculator/utils/cost-model.test.ts
 
 ## Agent (`packages/agent/`)
 
+The chat integration plan (phases, checklists, open questions) lives in [`docs/plan.md`](docs/plan.md): tick items there as phases land.
+
 Everything behind the chat lives here, with no framework: `createChatHandler(config)` returns `(request: Request) => Promise<Response>`, so any host can serve it in a few lines. Today it answers with a placeholder (`persona.ts`); the scraper, cache, tool and model land here in later steps.
 
 ```
