@@ -11,5 +11,5 @@ test('asks Robospresso a question and gets the placeholder answer', async ({
   await chat.getByRole('button', { name: 'Send' }).click()
 
   await expect(log).toContainText('You: Machines under €300?')
-  await expect(log).toContainText("I can't look up machines yet.")
+  await expect(log).toContainText('My magnifier is still in the shop')
 })

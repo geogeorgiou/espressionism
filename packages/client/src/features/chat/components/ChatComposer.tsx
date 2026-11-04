@@ -69,7 +69,7 @@ export function ChatComposer({
             <field.TextField
               label="Your question"
               hideLabel
-              placeholder="Ask about espresso machines…"
+              placeholder="Your budget, your taste, your call…"
               maxLength={MAX_MESSAGE_LENGTH}
               className="min-w-0 flex-1"
             />

@@ -11,5 +11,5 @@ export interface ChatMessage {
  * pretends to know prices.
  */
 export function stubReply(): string {
-  return "I can't look up machines yet. Soon I'll fetch espresso machines from Skroutz and sort them by price for you."
+  return "My magnifier is still in the shop, so no deals yet. Soon I'll scan Skroutz and line up machines for you, cheapest first."
 }

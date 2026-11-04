@@ -35,7 +35,7 @@ export function ChatPanel({ replyDelayMs }: ChatPanelProps) {
             Ask Robospresso
           </h2>
           <p className="text-sm opacity-85">
-            Espresso machines on Skroutz, sorted by price.
+            Your espresso concierge. Shades on, deals found.
           </p>
         </div>
         <span className="ml-auto hidden shrink-0 bg-screen-foreground px-2.5 py-1 font-pixel text-xs text-screen sm:inline">
