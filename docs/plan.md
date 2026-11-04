@@ -146,8 +146,6 @@ No request goes to the live site until this is done; work on saved pages
 can start before.
 
 - [ ] Read the Skroutz terms of use on automated access
-- [ ] Check whether the official developer API is still open; if it is, it
-      replaces scraping
 - [ ] Pick the contact address for the scraper's User-Agent
 
 ### Phase 2: Scraper
@@ -231,8 +229,6 @@ can start before.
 ## Open questions
 
 - [x] Backend: a `packages/agent` library on a Vercel Function (decided)
-- [ ] Is the Skroutz developer API still open? If so, it replaces scraping
-      (phase 1)
 - [ ] What do the Skroutz terms say about automated access? (phase 1)
 - [ ] Which model provider, hosted or self-hosted? (phase 5)
 - [ ] Is the in-memory cache enough on Vercel, or does it need Vercel KV or
