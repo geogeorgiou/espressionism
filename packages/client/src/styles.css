@@ -322,6 +322,29 @@
   --animate-hop: pixel-hop 0.6s ease-out 1;
   --animate-sweat: sweat-drip 1.6s steps(4, end) infinite;
   --animate-shiver: pixel-shiver 0.4s steps(1, end) 1;
+  /* Robospresso: the magnifying glass sweeps across his shades (9 pixels,
+     MAGNIFIER_SWEEP in robot-sprite.ts) and the antenna blinks. */
+  --animate-scan: magnifier-scan 1.8s steps(9, end) infinite alternate;
+  --animate-blink: antenna-blink 0.8s steps(1, end) infinite;
+
+  @keyframes magnifier-scan {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-9px);
+    }
+  }
+
+  @keyframes antenna-blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.25;
+    }
+  }
 
   @keyframes steam-rise {
     0% {

@@ -126,7 +126,8 @@ export const MUG_COLOR_VARS: Record<string, { name: string; diner: string }> = {
   T: { name: '--mug-sweat', diner: '#7cc6f2' },
 }
 
-const BASE_COLORS: Record<string, string> = Object.fromEntries(
+/** Theme-aware fills per sprite letter, shared with Robospresso. */
+export const BASE_COLORS: Record<string, string> = Object.fromEntries(
   Object.entries(MUG_COLOR_VARS).map(([letter, { name, diner }]) => [
     letter,
     `var(${name}, ${diner})`,

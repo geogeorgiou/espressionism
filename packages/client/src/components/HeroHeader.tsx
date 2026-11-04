@@ -12,6 +12,7 @@ import { stickerLine } from '@/features/theme/utils/themes'
 const NAV_LINKS = [
   { section: 'calculator', label: 'Calculator' },
   { section: 'charts', label: 'Charts' },
+  { section: 'chat', label: 'Chat' },
 ] as const
 
 const HIGHLIGHTS = [

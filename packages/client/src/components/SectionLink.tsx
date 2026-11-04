@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
-export type PageSection = 'calculator' | 'charts'
+export type PageSection = 'calculator' | 'charts' | 'chat'
 
 interface SectionLinkProps {
   section: PageSection

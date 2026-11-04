@@ -67,9 +67,14 @@ src/
 │   │   ├── hooks/       — useCalculatorTool (WebMCP `fill_calculator`)
 │   │   ├── pages/       — CalculatorPage
 │   │   └── utils/       — cost-model (pure), agent-fill, format, form-options, inputs
+│   ├── chat/
+│   │   ├── components/  — ChatPanel ("Ask Robospresso"), ChatLog, ChatComposer
+│   │   ├── constants/   — Zod composer schema, greeting, suggestions
+│   │   ├── hooks/       — useChat (messages, pending, send; stub reply for now)
+│   │   └── utils/       — messages (types, stub reply)
 │   ├── mascot/
-│   │   ├── components/  — Bitspresso (SVG pixel renderer)
-│   │   └── utils/       — sprite (text sprites, faces, flavors)
+│   │   ├── components/  — Bitspresso, Robospresso (SVG pixel renderers), PixelRect
+│   │   └── utils/       — sprite (text sprites, faces, flavors), robot-sprite
 │   ├── webmcp/
 │   │   ├── components/  — WebMcpBanner (status strip above both headers)
 │   │   ├── hooks/       — useWebMcpTool, useWebMcpSummary, useToolInvokedAt
@@ -141,6 +146,10 @@ The page offers tools to in-browser AI agents through [WebMCP](https://webmachin
 `features/mascot/utils/sprite.ts` holds the two forms as 20×20 text sprites (one letter per pixel). Both forms share the same face kit, stamped at the same spot, and a flavor band right under the face. `<Bitspresso form mood flavor className="size-28" />` renders it as crisp SVG rects. To add a mood, add a case in `stampFace`; to add a flavor, add an entry to `MASCOT_FLAVORS` and `FLAVOR_COLORS`.
 
 Every pixel carries a `part` (`body`, `steam`, `z`, `sweat`; steam also has a `wisp` index), so the renderer can animate pieces of the drawing. `animated` makes the steam drift up wisp by wisp (`animate-steam`), the sleepy Z bob (`animate-snooze`) and the scared sweat drop drip (`animate-sweat`); a scared mug's steam freezes. The hero mug uses it. `animate-hop` is a one-shot bounce used on hover for the verdict mascots. Hovering the hero card turns the mug `scared`, swaps the bubble to "Don't drink me plz!" and shakes the card once (`animate-shiver`). All motion lives in the `@theme` block in `styles.css`, moves in `steps()` to stay pixel-crisp, and must be paired with `motion-reduce:animate-none`.
+
+### Chat persona: Robospresso
+
+The chat (`features/chat`) is run by Robospresso, Bitspresso's espresso-machine robot cousin with aviator shades and a handlebar mustache (`features/mascot/utils/robot-sprite.ts`, one 20×20 text sprite). Two moods: `cool` and `searching`. While searching he holds a magnifying glass that sweeps across his shades (`animate-scan`, 9 pixels = `MAGNIFIER_SWEEP`) and his antenna blinks (`animate-blink`). Body colors read the same `--mug-*` properties as Bitspresso (`BASE_COLORS`), the panel band follows the flavor, and the glass keeps fixed colors (`MAGNIFIER_COLORS`) so it reads on every theme. Render with `<Robospresso mood animated className="size-16" />`.
 
 Favicons (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192/512.png`) are the header logo: the house-flavor mug winking on the dark screen tile. Regenerate them from `buildMascot('mug', 'wink', 'house')` if the sprite changes, resolving each `var(--mug-…, #hex)` fill to its Diner fallback.
 

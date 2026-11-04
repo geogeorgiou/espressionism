@@ -6,6 +6,7 @@ import { heroBody, heroNav } from './hero'
 const LINKS = [
   { where: 'header', name: 'Calculator', section: 'calculator' },
   { where: 'header', name: 'Charts', section: 'charts' },
+  { where: 'header', name: 'Chat', section: 'chat' },
   { where: 'header', name: 'Start calculating', section: 'calculator' },
   { where: 'hero', name: 'Start calculating', section: 'calculator' },
   { where: 'hero', name: 'See the charts', section: 'charts' },
