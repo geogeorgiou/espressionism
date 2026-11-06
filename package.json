@@ -27,6 +27,7 @@
     "format:check": "vp fmt --check",
     "docs:architecture": "node scripts/generate-architecture.mjs",
     "check": "vp check",
+    "check:secrets": "node scripts/check-secrets.mjs",
     "test:unit": "vp run -r test:unit",
     "test:e2e": "vp run -r test:e2e",
     "prepare": "vp config --no-agent"
