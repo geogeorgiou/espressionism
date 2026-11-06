@@ -3,6 +3,7 @@ import { createFormHook } from '@tanstack/react-form'
 import { fieldContext, formContext } from './form-context'
 import { NumberField } from './NumberField'
 import { SelectField } from './SelectField'
+import { TextField } from './TextField'
 
 /**
  * App-wide TanStack Form hook. Field UI is registered once here, so forms use
@@ -14,6 +15,7 @@ export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
     NumberField,
     SelectField,
+    TextField,
   },
   formComponents: {},
 })

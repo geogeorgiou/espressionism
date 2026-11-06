@@ -1,0 +1,27 @@
+{
+  "name": "@espressionism/agent",
+  "private": true,
+  "description": "Robospresso's brain: the chat handler behind /api/chat. Framework-free: a Web Request in, a Response out.",
+  "license": "MIT",
+  "author": "Georgios Georgiou",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./contract": "./src/contract.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "catalog:",
+    "ai": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@espressionism/store": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.3.0",
+    "vite-plus": "catalog:"
+  }
+}

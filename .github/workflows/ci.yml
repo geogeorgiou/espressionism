@@ -37,6 +37,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: API key stays out of the bundle
+        run: pnpm check:secrets
+
   e2e:
     name: E2E
     runs-on: ubuntu-latest

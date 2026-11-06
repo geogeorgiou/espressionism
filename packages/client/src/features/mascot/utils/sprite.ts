@@ -106,6 +106,36 @@ const FORMS: Record<MascotForm, FormSpec> = {
 }
 
 /**
+ * Where a form's base is centered, in grid columns: the middle of its lowest
+ * row (the mug's saucer, the cup's bottom). The mug's handle pushes its cup
+ * left of the grid's center, so captions line up with this, not the box.
+ */
+export function baseCenter(form: MascotForm): number {
+  const row = FORMS[form].rows.findLast((r) => /[^.]/.test(r))
+  if (!row) return GRID_SIZE / 2
+  const first = row.search(/[^.]/)
+  // One past the last lit pixel: the row without its trailing blanks.
+  const end = row.replace(/\.+$/, '').length
+  return (first + end) / 2
+}
+
+/**
+ * Padding that centers a caption, as wide as the sprite, under the form's
+ * base: the side away from the base gets the difference, as a percentage
+ * of the sprite's width.
+ */
+export function captionInset(form: MascotForm): {
+  paddingLeft?: string
+  paddingRight?: string
+} {
+  const shift = ((GRID_SIZE - 2 * baseCenter(form)) / GRID_SIZE) * 100
+  if (shift === 0) return {}
+  return shift > 0
+    ? { paddingRight: `${shift}%` }
+    : { paddingLeft: `${-shift}%` }
+}
+
+/**
  * Mug colors follow the active color theme. Each letter reads a CSS custom
  * property (set per theme in styles.css) and falls back to the Diner mug, so
  * the sprite still renders outside a themed page (favicons, tests).
@@ -126,7 +156,8 @@ export const MUG_COLOR_VARS: Record<string, { name: string; diner: string }> = {
   T: { name: '--mug-sweat', diner: '#7cc6f2' },
 }
 
-const BASE_COLORS: Record<string, string> = Object.fromEntries(
+/** Theme-aware fills per sprite letter, shared with Robospresso. */
+export const BASE_COLORS: Record<string, string> = Object.fromEntries(
   Object.entries(MUG_COLOR_VARS).map(([letter, { name, diner }]) => [
     letter,
     `var(${name}, ${diner})`,

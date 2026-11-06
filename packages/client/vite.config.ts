@@ -1,11 +1,22 @@
+import { fileURLToPath } from 'node:url'
+
 import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { defineConfig } from 'vite-plus'
 
+import { agentApi, isChatLive } from './vite/agent-api'
+
+const envDir = fileURLToPath(new URL('.', import.meta.url))
+
 const config = defineConfig(({ mode }) => ({
   resolve: { tsconfigPaths: true },
+  // Whether Robospresso has a model, fixed at build time from the server's
+  // env (a boolean, never the key). Tests pick a mode per render instead.
+  define: {
+    __CHAT_LIVE__: JSON.stringify(mode !== 'test' && isChatLive(mode, envDir)),
+  },
   // Unit tests render components in jsdom; the app shell plugins
   // (devtools, tailwindcss, tanstackStart) stay out of test mode.
   plugins:
@@ -20,11 +31,15 @@ const config = defineConfig(({ mode }) => ({
             spa: { enabled: true, prerender: { outputPath: '/index' } },
           }),
           viteReact(),
+          // /api/chat in dev and preview, served by @espressionism/agent
+          agentApi(),
         ],
   run: {
     tasks: {
       build: {
         command: 'vp build',
+        // `vp preview` serves the built agent at /api, so build it first.
+        dependsOn: [{ task: 'build', from: 'dependencies' }],
       },
       'test:unit': {
         command: 'vp test run',

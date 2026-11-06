@@ -1,6 +1,7 @@
 import { useSelector } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 
+import { ChatPanel } from '@/features/chat/components/ChatPanel'
 import { useAppForm } from '@/features/common/form/form'
 import { useToolInvokedAt } from '@/features/webmcp/hooks/use-webmcp-tool'
 import { Route } from '@/routes/index'
@@ -62,47 +63,52 @@ export function CalculatorPage() {
   const verdict = verdictFor(summary, inputs.years)
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-6 pb-16 sm:px-6 lg:flex-row lg:items-start lg:gap-10">
-      <section
-        id="calculator"
-        aria-labelledby="inputs-title"
-        className="flex scroll-mt-6 flex-col gap-5 rounded-lg border-2 border-foreground bg-card p-5 shadow-pixel lg:sticky lg:top-6 lg:w-96 lg:shrink-0"
-      >
-        <div className="flex flex-col gap-1">
-          <h2 id="inputs-title" className="font-pixel text-lg">
-            Your numbers
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Results update as you type.
-          </p>
-        </div>
-        <CalculatorForm form={form} />
-      </section>
+    <>
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-6 pb-8 sm:px-6 lg:flex-row lg:items-start lg:gap-10">
+        <section
+          id="calculator"
+          aria-labelledby="inputs-title"
+          className="flex scroll-mt-6 flex-col gap-5 rounded-lg border-2 border-foreground bg-card p-5 shadow-pixel lg:sticky lg:top-6 lg:w-96 lg:shrink-0"
+        >
+          <div className="flex flex-col gap-1">
+            <h2 id="inputs-title" className="font-pixel text-lg">
+              Your numbers
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Results update as you type.
+            </p>
+          </div>
+          <CalculatorForm form={form} />
+        </section>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-6">
-        <VerdictPanel
-          verdict={verdict}
-          summary={summary}
-          years={inputs.years}
-          currency={committed.currency}
-          flavor={committed.drink}
-          agentFilledAt={agentFilledAt}
-        />
-        <StatsGrid
-          summary={summary}
-          inputs={inputs}
-          currency={committed.currency}
-        />
-        <div id="charts" className="flex scroll-mt-6 flex-col gap-6">
-          <CumulativeCostChart
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <VerdictPanel
+            verdict={verdict}
+            summary={summary}
+            years={inputs.years}
+            currency={committed.currency}
+            flavor={committed.drink}
+            agentFilledAt={agentFilledAt}
+          />
+          <StatsGrid
+            summary={summary}
             inputs={inputs}
             currency={committed.currency}
-            breakEvenMonths={summary.breakEvenMonths}
           />
-          <YearlySpendChart inputs={inputs} currency={committed.currency} />
-          <CostPerCupChart inputs={inputs} currency={committed.currency} />
+          <div id="charts" className="flex scroll-mt-6 flex-col gap-6">
+            <CumulativeCostChart
+              inputs={inputs}
+              currency={committed.currency}
+              breakEvenMonths={summary.breakEvenMonths}
+            />
+            <YearlySpendChart inputs={inputs} currency={committed.currency} />
+            <CostPerCupChart inputs={inputs} currency={committed.currency} />
+          </div>
         </div>
       </div>
-    </div>
+      <div className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
+        <ChatPanel />
+      </div>
+    </>
   )
 }

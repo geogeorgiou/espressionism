@@ -22,6 +22,7 @@ pnpm-debug.log*
 
 # local env files
 .env
+.env*.local
 
 # TanStack Start / Nitro build artifacts
 .nitro

@@ -28,9 +28,18 @@ It's also a small, real-world playground for the TanStack ecosystem (Start, Rout
 
 > **Why the name?** _Espressionism_ has been my nickname for years: espresso meets the art movement. This is its first proper home.
 
-### Meet Bitspresso
+## Overview
 
-The mascot is **Bitspresso**, an 8-bit coffee character drawn as a 20×20 text sprite and rendered as crisp SVG pixels. It comes in two forms (a diner mug _for here_ and a cup _to go_), five moods (idle, happy, sleepy, surprised, wink) and five flavors (house, latte, mocha, matcha, cherry).
+Espressionism has two halves: a **UI** with two pages, and an **agent** that answers questions in the calculator's chat. Both read the same demo store data, so the store page and the chat always agree.
+
+<img src="docs/assets/architecture.svg" alt="Espressionism architecture: the chat sends questions to POST /api/chat, which prompts Gemini directly and streams back text plus product cards built by its tools (store search, show_machines, show_store_link) from the shared store data. Cards open the store pages in a new tab. In-browser agents use the same store search through WebMCP." width="100%" />
+
+| Part           | What it does                                                                                                                                                                                                    | Status  |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **Calculator** | Compares your café habit with brewing at home: break-even, yearly spend, real cost per cup. Inputs live in the URL. In-browser AI agents can fill it through [WebMCP](#webmcp-let-an-ai-agent-fill-it-in).      | ✅ Live |
+| **Store**      | A demo shop of 10 espresso machines (made-up prices and ratings), with price and rating filters and sorting, all kept in the URL, plus a page for each product.                                                 | ✅ Live |
+| **Chat**       | Robospresso, the espresso concierge on the calculator page. Answers stream in as text plus product cards and a "See all in the store" link; links open in a new tab. See [Robospresso chat](#robospresso-chat). | ✅ Live |
+| **Agent**      | `POST /api/chat`: Gemini (direct, via the AI SDK) with the store search and two display tools. Without an API key it answers with a placeholder.                                                                | ✅ Live |
 
 ## Stack
 
@@ -39,6 +48,7 @@ The mascot is **Bitspresso**, an 8-bit coffee character drawn as a 20×20 text s
 | Framework       | [TanStack Start](https://tanstack.com/start) (SPA mode) on [React 19](https://react.dev)                                                                   |
 | Routing         | [TanStack Router](https://tanstack.com/router) with type-safe, URL-validated search params                                                                 |
 | Forms           | [TanStack Form](https://tanstack.com/form) + [Zod](https://zod.dev) validation                                                                             |
+| Chat            | [AI SDK](https://ai-sdk.dev) (`streamText`, UI message streams, `@ai-sdk/react`) with [Gemini](https://ai.google.dev) via Google AI Studio                 |
 | AI agents       | [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tools, with their status kept in a [Zustand](https://zustand.docs.pmnd.rs) store                     |
 | Charts          | [react-charts](https://react-charts.tanstack.com) (TanStack Charts)                                                                                        |
 | UI              | [shadcn/ui](https://ui.shadcn.com) on [Radix UI](https://www.radix-ui.com), [Tailwind CSS v4](https://tailwindcss.com), [Lucide](https://lucide.dev) icons |
@@ -74,13 +84,68 @@ The TanStack Devtools panel sits in the bottom-right corner while the dev server
 
 Run from the repo root:
 
-| Command            | What it does                             |
-| ------------------ | ---------------------------------------- |
-| `pnpm dev`         | Start the client dev server on port 3000 |
-| `pnpm build`       | Production build (cached)                |
-| `pnpm check`       | Format check + lint + type check         |
-| `pnpm check --fix` | Same, with autofixes                     |
-| `pnpm test:unit`   | Unit tests                               |
+| Command              | What it does                                     |
+| -------------------- | ------------------------------------------------ |
+| `pnpm dev`           | Start the client dev server on port 3000         |
+| `pnpm build`         | Production build (cached)                        |
+| `pnpm check`         | Format check + lint + type check                 |
+| `pnpm check --fix`   | Same, with autofixes                             |
+| `pnpm test:unit`     | Unit tests                                       |
+| `pnpm check:secrets` | Prove the API key never reaches the built bundle |
+| `pnpm test:e2e`      | End-to-end tests (Playwright)                    |
+
+## Robospresso chat
+
+Ask Robospresso (the chat on the calculator page) recommends machines from the demo store. A question travels like this:
+
+1. The browser sends the conversation to `POST /api/chat` as **text turns only**. Cards and tool results stay in the browser, so nobody can slip fake prices to the model.
+2. The agent (`packages/agent`) prompts Gemini with three tools. `search_espresso_machines` filters the catalog (the same tool the store page offers over WebMCP). `show_machines` and `show_store_link` are **display tools**: the model picks which machines to show, and the server fills each card from the catalog, rejecting any slug the store doesn't sell.
+3. The answer streams back as an [AI SDK UI message stream](https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol): text parts plus tool parts.
+4. The chat draws each part through a small renderer registry: text bubbles, skeleton cards while a call is in flight, then product cards and a store link that open in a new tab, so the conversation stays put. See [How the chat draws an answer](#how-the-chat-draws-an-answer).
+
+Every answer runs under fixed limits (4 model steps, 400 output tokens, 20 s). Upstream errors only reach the server log; the browser gets a generic apology and keeps whatever already arrived.
+
+### How the chat draws an answer
+
+Nobody sends "draw a card". The server and the model only ever produce **tool calls and their results**. The chat decides what each one looks like. `cards-loading`, `cards`, `store-link` and `text` are view names that exist only in the browser.
+
+Four layers, each with one job:
+
+| Layer                      | Where                                                         | What it produces                                                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Model**                  | Gemini                                                        | Decides to call `show_machines({ slugs: ['gaggia-…', '…'] })`. It only names machines; it never writes a price.                                                                                                                           |
+| **Tool**                   | `packages/agent/src/tools.ts`                                 | Runs the call on the server: looks each slug up in the catalog and returns `{ ok: true, items: [Machine…] }`, or `{ ok: false, errors }` for an unknown slug (the model sees the errors and retries).                                     |
+| **Stream → message parts** | AI SDK (`streamText` on the server, `useChat` in the browser) | Streams the call as chunks (`tool-input-available`, then `tool-output-available`). `useChat` folds them into one part on the message: `{ type: 'tool-show_machines', state, input, output }`. The `state` moves forward as chunks arrive. |
+| **Part → view → JSX**      | `features/chat/utils/parts.ts`, `components/MessageParts.tsx` | `toPartView(part)` (pure) reads the part's `type` and `state`, parses the output with the contract's Zod schema and returns a view, or `null` to draw nothing. `MessageParts` looks the view's `kind` up in `RENDERERS` and renders it.   |
+
+How `toPartView` maps each part:
+
+| Message part (`type` · `state`)                                                       | View            | Drawn as                                                    |
+| ------------------------------------------------------------------------------------- | --------------- | ----------------------------------------------------------- |
+| `text`                                                                                | `text`          | Robospresso's speech bubble                                 |
+| `tool-show_machines` · `input-streaming` / `input-available`                          | `cards-loading` | One skeleton per requested slug (max 5)                     |
+| `tool-show_machines` · `output-available`, `ok: true`                                 | `cards`         | Compact `MachineCard`s, new tab                             |
+| `tool-show_store_link` · `output-available`, `ok: true`                               | `store-link`    | "See all N in the store" with the filters                   |
+| `tool-search_espresso_machines` · any                                                 | none            | Nothing; while it runs the chat shows "Scanning the store…" |
+| any display tool with `ok: false`, `output-error`, or an output that fails its schema | none            | Nothing; the model fixes the call and a later part draws    |
+
+So one `show_machines` call shows on screen as skeletons first, then the same spot fills in with cards: the part keeps its `toolCallId` (the React key) and only its `state` changes. Because every view is built from the parsed tool **output** (catalog data) and never from the model's text, a card can't show a made-up price.
+
+To add a new kind of answer, such as a comparison table:
+
+1. **Agent:** add a `compare_machines` tool in `tools.ts` with a flat, `.strict()` input, and put its output schema in `contract.ts` (plus its entry in `RobospressoTools`).
+2. **Instructions:** tell the model when to call it (`instructions.ts`).
+3. **Client:** add a `case 'tool-compare_machines'` to `toPartView` that returns a new view kind, and a renderer for that kind in `RENDERERS`. TypeScript rejects a view kind without a renderer.
+
+### Use your own Gemini key
+
+Without a key the chat answers with a placeholder, so tests, CI and keyless previews work as-is. The chat header says which one you're on: a green **Live** badge when a model is configured, a red **Offline** one ("Demo mode") when it isn't. It's decided when the app is built (is the key set?), so restart `pnpm dev` or redeploy after changing it; only that yes/no reaches the browser, never the key. To talk to Gemini locally:
+
+1. Create a key in [Google AI Studio](https://aistudio.google.com/apikey) (restrict it to the Gemini API).
+2. Copy `packages/client/.env.example` to `packages/client/.env` and set `GOOGLE_GENERATIVE_AI_API_KEY`. `GEMINI_MODEL` is optional (default `gemini-3.5-flash-lite`).
+3. Restart `pnpm dev`.
+
+On Vercel, add `GOOGLE_GENERATIVE_AI_API_KEY` as a **Secret** environment variable. Never give these variables a `VITE_` prefix: that would ship the key to the browser.
 
 ## WebMCP: let an AI agent fill it in
 
@@ -119,17 +184,25 @@ The math lives in pure functions in `packages/client/src/features/calculator/uti
 ## Project layout
 
 ```
+api/
+  chat.ts          Vercel Function: POST /api/chat → the agent
 packages/
-  client/          TanStack Start frontend
+  client/          TanStack Start frontend (the UI)
     src/
       features/
         calculator/   form, verdict, stats, charts and the WebMCP tool
-        mascot/       Bitspresso sprites and SVG renderer
+        store/        store and product pages, filters, machine sprites
+        chat/         Ask Robospresso: useChat, part renderers, cards
+        mascot/       pixel-art sprites and SVG renderer
         webmcp/       tool registration hook, status store (Zustand) and banner
-        common/       shared form fields, ChartCard, hooks
+        common/       shared form fields, ChartCard
       routes/         thin route entry points
     test/unit/        tests mirroring src/features
-docs/assets/       README images
+    test/e2e/         Playwright specs
+  agent/           chat handler, Gemini reply, tools, HTTP contract
+  store/           demo catalog + pure filter/sort, shared by UI and agent
+docs/
+  assets/          README images
 ```
 
 See [CLAUDE.md](./CLAUDE.md) for the full conventions.

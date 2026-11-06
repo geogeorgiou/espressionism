@@ -98,3 +98,53 @@ test.describe('with WebMCP', () => {
     await expect(page.getByText('Filled by your agent')).toHaveCount(0)
   })
 })
+
+test.describe('with WebMCP on the store page', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubModelContext(page)
+    await page.goto('/store')
+  })
+
+  test('search_espresso_machines searches and shows the filters', async ({
+    page,
+  }) => {
+    await expect(banner(page)).toContainText('1 tool ready')
+
+    const result = await callTool(page, 'search_espresso_machines', {
+      minPrice: 300,
+      maxPrice: 1000,
+      limit: 2,
+    })
+    expect(result).toMatchObject({
+      ok: true,
+      source: 'espressionism-store',
+      sort: 'rating_desc',
+      total: 5,
+      items: [{ name: 'Lelit Aurora Plus' }, { name: 'Breville Dual' }],
+    })
+
+    await expect(page.getByLabel('Min price')).toHaveValue('300')
+    await expect(page.getByLabel('Max price')).toHaveValue('1000')
+    await expect(page.getByText('5 of 10 machines')).toBeVisible()
+    await expect(page).toHaveURL(/minPrice=300/)
+    await expect(page).toHaveURL(/maxPrice=1000/)
+  })
+
+  test('search_espresso_machines rejects an upside-down range', async ({
+    page,
+  }) => {
+    await expect(banner(page)).toContainText('1 tool ready')
+
+    const result = await callTool(page, 'search_espresso_machines', {
+      minPrice: 900,
+      maxPrice: 100,
+    })
+    expect(result).toEqual({
+      ok: false,
+      errors: [
+        { field: 'maxPrice', message: 'minPrice must not exceed maxPrice' },
+      ],
+    })
+    await expect(page.getByText('10 of 10 machines')).toBeVisible()
+  })
+})

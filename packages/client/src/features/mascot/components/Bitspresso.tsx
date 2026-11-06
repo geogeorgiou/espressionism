@@ -9,6 +9,8 @@ import type {
 } from '@/features/mascot/utils/sprite'
 import { GRID_SIZE, buildMascot } from '@/features/mascot/utils/sprite'
 
+import { PixelRect } from './PixelRect'
+
 interface BitspressoProps {
   form?: MascotForm
   mood?: MascotMood
@@ -26,20 +28,6 @@ interface BitspressoProps {
 
 /** Seconds between wisps, so they rise one after another. */
 const WISP_STAGGER = 0.7
-
-function Pixel({ pixel }: { pixel: MascotPixel }) {
-  return (
-    <rect
-      x={pixel.x}
-      y={pixel.y}
-      width={1}
-      height={1}
-      // Fills are CSS values (often `var(--mug-…)`), so they go through style.
-      style={{ fill: pixel.fill }}
-      opacity={pixel.opacity}
-    />
-  )
-}
 
 export function Bitspresso({
   form = 'mug',
@@ -93,7 +81,7 @@ export function Bitspresso({
           }
         >
           {wisp.map((p) => (
-            <Pixel key={`${p.x}-${p.y}`} pixel={p} />
+            <PixelRect key={`${p.x}-${p.y}`} pixel={p} />
           ))}
         </g>
       ))}
@@ -105,12 +93,12 @@ export function Bitspresso({
           )}
         >
           {z.map((p) => (
-            <Pixel key={`${p.x}-${p.y}`} pixel={p} />
+            <PixelRect key={`${p.x}-${p.y}`} pixel={p} />
           ))}
         </g>
       )}
       {body.map((p) => (
-        <Pixel key={`${p.x}-${p.y}`} pixel={p} />
+        <PixelRect key={`${p.x}-${p.y}`} pixel={p} />
       ))}
       {sweat.length > 0 && (
         <g
@@ -120,7 +108,7 @@ export function Bitspresso({
           )}
         >
           {sweat.map((p) => (
-            <Pixel key={`${p.x}-${p.y}`} pixel={p} />
+            <PixelRect key={`${p.x}-${p.y}`} pixel={p} />
           ))}
         </g>
       )}

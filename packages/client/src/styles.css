@@ -120,6 +120,16 @@
     --mug-cheeks: #e48aa0;
     --mug-steam: #ffffff;
     --mug-sweat: #8fd3ff;
+
+    /* Robospresso: same steel as [data-theme='night'] */
+    --robot-outline: #0b101c;
+    --robot-body: #a9bcd9;
+    --robot-shine: #e6edf7;
+    --robot-shade: #6d84ad;
+    --robot-trim: #d9dce4;
+    --robot-cup: #fdf6e8;
+    --robot-shades: #0f1626;
+    --robot-mustache: #2a1810;
   }
 }
 
@@ -219,6 +229,16 @@
   --mug-cheeks: #e48aa0;
   --mug-steam: #ffffff;
   --mug-sweat: #8fd3ff;
+
+  /* Robospresso: brushed steel, so he reads on the dark tile */
+  --robot-outline: #0b101c;
+  --robot-body: #a9bcd9;
+  --robot-shine: #e6edf7;
+  --robot-shade: #6d84ad;
+  --robot-trim: #d9dce4;
+  --robot-cup: #fdf6e8;
+  --robot-shades: #0f1626;
+  --robot-mustache: #2a1810;
 }
 
 [data-theme='mint'] {
@@ -322,6 +342,29 @@
   --animate-hop: pixel-hop 0.6s ease-out 1;
   --animate-sweat: sweat-drip 1.6s steps(4, end) infinite;
   --animate-shiver: pixel-shiver 0.4s steps(1, end) 1;
+  /* Robospresso: the magnifying glass sweeps across his shades (9 pixels,
+     MAGNIFIER_SWEEP in robot-sprite.ts) and the antenna blinks. */
+  --animate-scan: magnifier-scan 1.8s steps(9, end) infinite alternate;
+  --animate-blink: antenna-blink 0.8s steps(1, end) infinite;
+
+  @keyframes magnifier-scan {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-9px);
+    }
+  }
+
+  @keyframes antenna-blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.25;
+    }
+  }
 
   @keyframes steam-rise {
     0% {

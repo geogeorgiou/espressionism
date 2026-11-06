@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 // Role queries skip hidden elements, so at laptop width the only `banner` is
 // the landing hero (the compact phone header is `display: none`).
 
-/** The hero's header nav: Calculator, Charts, Start calculating. */
+/** The hero's header nav: Calculator, Charts, Chat, Start calculating. */
 export function heroNav(page: Page) {
   return page.getByRole('banner').getByRole('navigation', { name: 'Main' })
 }
