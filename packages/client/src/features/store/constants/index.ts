@@ -1,4 +1,4 @@
-import { STORE_SORTS } from '@espressionism/store'
+import { STORE_SORTS, searchToolInputSchema } from '@espressionism/store'
 import type { StoreSort } from '@espressionism/store'
 import { z } from 'zod'
 
@@ -72,3 +72,9 @@ export const EMPTY_FILTERS: StoreFormValues = {
   minRating: ANY_RATING,
   sort: 'rating_desc',
 }
+
+/**
+ * JSON Schema for the WebMCP `search_espresso_machines` tool, derived from
+ * the store's shared Zod schema (Robospresso's model sees the same one).
+ */
+export const SEARCH_TOOL_INPUT_SCHEMA = z.toJSONSchema(searchToolInputSchema)

@@ -1,5 +1,5 @@
 import { DEFAULT_SORT } from '@espressionism/store'
-import type { StoreQuery } from '@espressionism/store'
+import type { SearchResult, StoreQuery } from '@espressionism/store'
 
 import type {
   StoreFormOutput,
@@ -27,6 +27,29 @@ export function searchToForm(search: StoreSearch): StoreFormValues {
     minRating:
       search.minRating === undefined ? ANY_RATING : String(search.minRating),
     sort: search.sort ?? DEFAULT_SORT,
+  }
+}
+
+/**
+ * An agent's search → the filter form, so the page shows what it found. The
+ * search replaces every filter. The rating select only offers a few steps,
+ * so a rating between them shows the next one down: the page may list a few
+ * more machines than the agent got, never fewer.
+ */
+export function agentSearchToForm({
+  filters,
+  sort,
+}: Pick<SearchResult, 'filters' | 'sort'>): StoreFormValues {
+  const { minPrice, maxPrice, minRating } = filters
+  const step =
+    minRating === undefined
+      ? undefined
+      : MIN_RATINGS.findLast((rating) => rating <= minRating)
+  return {
+    minPrice: minPrice ?? EMPTY_FILTERS.minPrice,
+    maxPrice: maxPrice ?? EMPTY_FILTERS.maxPrice,
+    minRating: step === undefined ? ANY_RATING : String(step),
+    sort,
   }
 }
 

@@ -8,8 +8,9 @@ import { Route } from '@/routes/store'
 
 import { MachineCard } from '../components/MachineCard'
 import { StoreFilters } from '../components/StoreFilters'
-import type { StoreSearch } from '../constants'
+import type { StoreFormValues, StoreSearch } from '../constants'
 import { EMPTY_FILTERS, STORE_DISCLAIMER, storeFormSchema } from '../constants'
+import { useStoreSearchTool } from '../hooks/use-store-search-tool'
 import { storeFormOptions } from '../utils/form-options'
 import { formatCount } from '../utils/format'
 import {
@@ -51,6 +52,16 @@ export function StorePage() {
     parsed.success ? formToSearch(parsed.data) : search,
   )
   const machines = searchMachines(searchToQuery(committed))
+
+  // A visitor's agent searches through WebMCP; each field is set as if
+  // picked by hand, so validation and the URL sync run as usual.
+  useStoreSearchTool({
+    setFilters: (next: StoreFormValues) => {
+      for (const name of Object.keys(next) as (keyof StoreFormValues)[]) {
+        form.setFieldValue(name, next[name])
+      }
+    },
+  })
 
   const reset = () => {
     form.reset(EMPTY_FILTERS)

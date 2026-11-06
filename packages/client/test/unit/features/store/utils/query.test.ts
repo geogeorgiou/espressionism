@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { EMPTY_FILTERS, storeFormSchema } from '@/features/store/constants'
 import {
+  agentSearchToForm,
   compactSearch,
   formToSearch,
   searchToForm,
@@ -55,5 +56,37 @@ describe('searchToQuery', () => {
     expect(
       searchToQuery({ minPrice: 900, maxPrice: 100, minRating: 4 }),
     ).toEqual({ minRating: 4, sort: undefined })
+  })
+})
+
+/** The rating the form shows for an agent's minimum rating. */
+function shownRating(minRating: number) {
+  return agentSearchToForm({ filters: { minRating }, sort: 'rating_desc' })
+    .minRating
+}
+
+describe('agentSearchToForm', () => {
+  it("replaces every filter with the agent's search", () => {
+    expect(agentSearchToForm({ filters: {}, sort: 'rating_desc' })).toEqual(
+      EMPTY_FILTERS,
+    )
+    expect(
+      agentSearchToForm({
+        filters: { minPrice: 100, maxPrice: 400, minRating: 4.5 },
+        sort: 'price_desc',
+      }),
+    ).toEqual({
+      minPrice: 100,
+      maxPrice: 400,
+      minRating: '4.5',
+      sort: 'price_desc',
+    })
+  })
+
+  it('shows a rating between the steps as the next one down', () => {
+    expect(shownRating(4.2)).toBe('4')
+    expect(shownRating(3)).toBe('3')
+    expect(shownRating(2.5)).toBe('any')
+    expect(shownRating(5)).toBe('4.5')
   })
 })
