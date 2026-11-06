@@ -9,7 +9,7 @@ export function ChatStatusBadge({ live }: { live: boolean }) {
     <span
       data-status={live ? 'live' : 'offline'}
       title={copy.title}
-      className="ml-auto hidden shrink-0 items-center gap-1.5 bg-screen-foreground px-2.5 py-1 font-pixel text-xs text-screen sm:inline-flex"
+      className="inline-flex shrink-0 items-center gap-1.5 bg-screen-foreground px-2.5 py-1 font-pixel text-xs text-screen"
     >
       <span
         aria-hidden
