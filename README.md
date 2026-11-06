@@ -28,9 +28,18 @@ It's also a small, real-world playground for the TanStack ecosystem (Start, Rout
 
 > **Why the name?** _Espressionism_ has been my nickname for years: espresso meets the art movement. This is its first proper home.
 
-### Meet Bitspresso
+## Overview
 
-The mascot is **Bitspresso**, an 8-bit coffee character drawn as a 20×20 text sprite and rendered as crisp SVG pixels. It comes in two forms (a diner mug _for here_ and a cup _to go_), five moods (idle, happy, sleepy, surprised, wink) and five flavors (house, latte, mocha, matcha, cherry).
+Espressionism has two halves: a **UI** with two pages, and an **agent** that answers questions in the calculator's chat. Both read the same demo store data, so the store page and the chat always agree.
+
+<img src="docs/assets/architecture.svg" alt="Espressionism architecture: the UI (calculator, Ask Robospresso chat, store pages) and the agent (POST /api/chat, a planned search tool and a planned external LLM) both read the shared store data package. Solid arrows work today; dashed ones are planned." width="100%" />
+
+| Part           | What it does                                                                                                                                                                                               | Status     |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| **Calculator** | Compares your café habit with brewing at home: break-even, yearly spend, real cost per cup. Inputs live in the URL. In-browser AI agents can fill it through [WebMCP](#webmcp-let-an-ai-agent-fill-it-in). | ✅ Live    |
+| **Store**      | A demo shop of 10 espresso machines (made-up prices and ratings), with price and rating filters and sorting, all kept in the URL, plus a page for each product.                                            | ✅ Live    |
+| **Chat**       | Robospresso, the espresso concierge: the UI, `POST /api/chat` and its request/reply contract are in place.                                                                                                 | 🟡 Partial |
+| **LLM + tool** | A hosted model that calls `searchEspressoMachines` on the store data and answers with links to product pages. See [`docs/plan.md`](docs/plan.md).                                                          | ⏳ Planned |
 
 ## Stack
 
@@ -81,6 +90,7 @@ Run from the repo root:
 | `pnpm check`       | Format check + lint + type check         |
 | `pnpm check --fix` | Same, with autofixes                     |
 | `pnpm test:unit`   | Unit tests                               |
+| `pnpm test:e2e`    | End-to-end tests (Playwright)            |
 
 ## WebMCP: let an AI agent fill it in
 
@@ -119,17 +129,26 @@ The math lives in pure functions in `packages/client/src/features/calculator/uti
 ## Project layout
 
 ```
+api/
+  chat.ts          Vercel Function: POST /api/chat → the agent
 packages/
-  client/          TanStack Start frontend
+  client/          TanStack Start frontend (the UI)
     src/
       features/
         calculator/   form, verdict, stats, charts and the WebMCP tool
-        mascot/       Bitspresso sprites and SVG renderer
+        store/        store and product pages, filters, machine sprites
+        chat/         Ask Robospresso panel
+        mascot/       pixel-art sprites and SVG renderer
         webmcp/       tool registration hook, status store (Zustand) and banner
-        common/       shared form fields, ChartCard, hooks
+        common/       shared form fields, ChartCard
       routes/         thin route entry points
     test/unit/        tests mirroring src/features
-docs/assets/       README images
+    test/e2e/         Playwright specs
+  agent/           chat handler and HTTP contract (framework-free)
+  store/           demo catalog + pure filter/sort, shared by UI and agent
+docs/
+  plan.md          chat integration plan
+  assets/          README images
 ```
 
 See [CLAUDE.md](./CLAUDE.md) for the full conventions.

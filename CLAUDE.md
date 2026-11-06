@@ -45,6 +45,7 @@ Run from the repo root:
 - **Unit tests:** `pnpm test:unit`
 - **Lint GitHub Actions:** `pnpm lint:actions` (zizmor with online audits; needs `brew install zizmor` and `GH_TOKEN` or `gh auth login`)
 - **Update GitHub Actions:** `pnpm actions:up` (interactive actions-up, then zizmor); `pnpm actions:outdated` only reports
+- **README diagram:** `pnpm docs:architecture` redraws `docs/assets/architecture.svg` from the app's sprites (`scripts/generate-architecture.mjs`; needs network for the fonts). Rerun it when the architecture or a sprite changes.
 - **E2E tests:** `pnpm test:e2e` (Playwright; builds the app and serves it with `vp preview` on :4173). First run: `pnpm --filter @espressionism/client exec playwright install chromium`
 
 Single test file (from `packages/client/`):
