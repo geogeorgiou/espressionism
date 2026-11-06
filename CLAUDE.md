@@ -43,6 +43,7 @@ Run from the repo root:
 - **Build (cached):** `pnpm build`
 - **Format + lint + type check:** `pnpm check` (`pnpm check --fix` to autofix)
 - **Unit tests:** `pnpm test:unit`
+- **Secrets in the bundle:** `pnpm check:secrets` builds the client with a canary Gemini key into a temp folder and fails if it shows up in any output file; it also scans `dist/` for Google key patterns (`scripts/check-secrets.mjs`, runs in CI after the build). Run it after touching `vite.config.ts`, `vite/agent-api.ts` or anything that reads env.
 - **Lint GitHub Actions:** `pnpm lint:actions` (zizmor with online audits; needs `brew install zizmor` and `GH_TOKEN` or `gh auth login`)
 - **Update GitHub Actions:** `pnpm actions:up` (interactive actions-up, then zizmor); `pnpm actions:outdated` only reports
 - **README diagram:** `pnpm docs:architecture` redraws `docs/assets/architecture.svg` from the app's sprites (`scripts/generate-architecture.mjs`; needs network for the fonts). Rerun it when the architecture or a sprite changes.
@@ -56,28 +57,38 @@ pnpm exec vp test run test/unit/features/calculator/utils/cost-model.test.ts
 
 ## Agent (`packages/agent/`)
 
-The chat integration plan (phases, checklists, open questions) lives in [`docs/plan.md`](docs/plan.md): tick items there as phases land.
-
-Everything behind the chat lives here, with no framework: `createChatHandler(config)` returns `(request: Request) => Promise<Response>`, so any host can serve it in a few lines. Today it answers with a placeholder (`persona.ts`); the model and the store search tool land here in later steps.
+Everything behind the chat lives here, with no framework: `createChatHandler(config)` returns `(request: Request) => Promise<Response>`, so any host can serve it in a few lines. Requests are text turns; replies are an AI SDK **UI message stream** (SSE). Whether a model is configured is a **build-time flag**: `vite.config.ts` defines `__CHAT_LIVE__` (`isChatLive` in `vite/agent-api.ts`: is `GOOGLE_GENERATIVE_AI_API_KEY` set?), read as `CHAT_LIVE` in the chat's constants. The header badge shows a green "Live" or red "Offline" from it; only the boolean reaches the bundle, never the key. Change the key, then restart `pnpm dev` or rebuild. With a Gemini key it answers through `streamText` with three tools (the store search and two display tools); without one it streams the placeholder (`persona.ts`).
 
 ```
 src/
-├── contract.ts  — Zod HTTP contract (request, reply, error, machine, search result)
-├── handler.ts   — createChatHandler: POST only, 32 KB cap, validation, no leaked errors
-├── persona.ts   — Robospresso's placeholder reply
-└── index.ts     — public API (re-exports the contract)
-test/unit/       — handler tests (Vitest, node environment)
+├── contract.ts      — Zod HTTP contract (text turns, error, display tool outputs, RobospressoMessage type)
+├── handler.ts       — createChatHandler: POST only, 32 KB cap, validation, streams the reply, no leaked errors
+├── config.ts        — agentConfigFromEnv: key + model id → AgentConfig (no key → placeholder)
+├── reply.ts         — createStoreReply({ model, limits }): streamText + the tools → UI message stream
+├── tools.ts         — AI SDK tools: the store's shared search, plus show_machines and show_store_link
+├── stream.ts        — ReplyStream, textReply, the generic error and its logging
+├── instructions.ts  — Robospresso's system instructions, off-topic and empty replies
+├── persona.ts       — Robospresso's placeholder reply (streamed)
+└── index.ts         — public API (re-exports the contract)
+test/unit/       — handler and reply tests (Vitest, node environment)
 ```
+
+- **Model: Gemini, direct.** `@ai-sdk/google` with a Google AI Studio key; no AI Gateway. `createStoreReply` takes a model _object_ (`StoreModel` excludes strings): a bare `'creator/model'` string would route through the AI Gateway, the AI SDK's default global provider.
+- **Env is injected.** The agent never reads `process.env`. Hosts pass their env to `agentConfigFromEnv`: `api/chat.ts` passes `process.env`, the Vite plugin passes `loadEnv(mode, envDir, '')`. Variables: `GOOGLE_GENERATIVE_AI_API_KEY` (a Vercel **Secret**; locally `packages/client/.env`, see `.env.example`) and optional `GEMINI_MODEL` (default `DEFAULT_GEMINI_MODEL`). Never give them a `VITE_` prefix.
+- **Display tools (generative UI).** The model chooses _what_ to show, the client owns _how_. `show_machines({ slugs })` and `show_store_link(filters)` return catalog data (`{ ok: true, … }`) or `{ ok: false, errors }` for unknown slugs and bad filters, so the model can retry; their output schemas live in `contract.ts` and the client parses them before drawing. A new kind of card = a display tool here (flat, `.strict()` input), its output schema in the contract, a view in the client's `toPartView` and a renderer in `MessageParts`. Display tools are for Robospresso only, never WebMCP.
+- **History is text only.** `chatTurnSchema` strips everything but `role` and `text`, so tool parts (and forged tool outputs) never reach the model; it searches again when it needs facts. The client adds `[Cards shown: <slugs>]` to an assistant turn so follow-ups can refer to them.
+- **Limits.** Every answer runs under `DEFAULT_LIMITS` (4 steps, output tokens, total timeout) with one retry. Errors before the stream starts are a JSON 500; errors during it are a generic `error` chunk. Either way the reason goes to the server log as `name: message` only. An answer with no text and no cards gets `EMPTY_REPLY`.
+- **Tests never call Google.** Drive `createStoreReply` with `MockLanguageModelV4` from `ai/test` (`doStream` with `convertArrayToReadableStream`): script the tool calls and text, collect the UI chunks, then assert on them and on `doStreamCalls` (prompt, tools, tool results). `test/unit/sse.ts` reads chunks from a response or stream.
 
 - **Two entry points.** `@espressionism/agent` is the server runtime: `exports.default` points at the bundle `vp pack` writes to `dist/index.mjs` (types come from `src`). `@espressionism/agent/contract` is TypeScript source with no server code, safe to import in the browser; the client validates replies with it.
 - **Hosts.** On Vercel, `api/chat.ts` exports `POST` and calls the handler; the root `pnpm build` builds the agent before Vercel bundles the function, and the `vercel.json` rewrite skips `/api/`. Locally, `packages/client/vite/agent-api.ts` serves the same handler at `/api/chat`: `pnpm dev` loads the agent's source through Vite (no build needed), `vp preview` (and so the e2e tests) imports the built package. The client's `build` task depends on the agent's build for that reason.
 - **One handler per process.** Create the handler once (module scope), not per request.
 - **Store data.** The contract builds on `@espressionism/store`'s `machineSchema`. The store is a **dev** dependency on purpose: `vp pack` inlines dev dependencies, so the Vercel Function never loads the store's TypeScript at runtime.
-- **Contract changes** go in `contract.ts` with a matching handler test; the client's `fetchReply` parses replies with `chatReplySchema`.
+- **Contract changes** go in `contract.ts` with a matching handler or reply test; the client sends turns with `toTurns` and parses display tool outputs with the contract's schemas.
 
 ## Store (`packages/store/`)
 
-The demo espresso-machine store, shared by the client's store pages and (later) Robospresso's search tool. No third party: brands are real, prices and ratings are made up. Source-only TypeScript (`exports` → `src/index.ts`), no build step.
+The demo espresso-machine store, shared by the client's store pages and Robospresso's tools. No third party: brands are real, prices and ratings are made up. Source-only TypeScript (`exports` → `src/index.ts`), no build step.
 
 ```
 src/
@@ -85,10 +96,12 @@ src/
 ├── catalog.ts   — CATALOG, parsed with machineSchema on load
 ├── schema.ts    — machineSchema, STORE_SORTS, DEFAULT_SORT, storeFiltersSchema
 ├── search.ts    — searchMachines, findMachine, priceRange (pure)
+├── tool.ts      — the store search tool, defined once: SEARCH_TOOL, searchToolInputSchema, runStoreSearch, searchResultSchema
 └── index.ts
 test/unit/       — catalog invariants + search (Vitest, node environment)
 ```
 
+- **One tool, two adapters.** `search_espresso_machines` lives in `tool.ts`: name and description, a flat Zod input (plain checks, `.meta({ description })` last, `.strict()`), and `runStoreSearch(input)`, which validates untrusted input, applies `storeFiltersSchema` (the min ≤ max rule JSON Schema can't carry) and returns `{ ok: true, ...SearchResult }` or `{ ok: false, errors }` without throwing. The agent's AI SDK tool (`packages/agent/src/tools.ts`) and the store page's WebMCP tool (`use-store-search-tool.ts`) only adapt it; keep validation and search logic out of them.
 - **Sorting.** `rating_desc` (default; unrated last), `price_asc`, `price_desc`; ties by name. Price bounds are inclusive; `minRating` hides unrated machines.
 - **Catalog rules** are pinned by `catalog.test.ts`: ten machines, unique slugs, `url` = `/store/<slug>`, prices €149–1,499, ratings 2.8–4.9 (one decimal), exactly one unrated machine, at least two cheaper machines that out-rate pricier ones. Hand edits to `catalog.json` must keep them, and the client's e2e specs assert exact orders, so update `test/e2e/store.spec.ts` with it.
 
@@ -111,13 +124,14 @@ src/
 │   │   ├── pages/       — CalculatorPage
 │   │   └── utils/       — cost-model (pure), agent-fill, format, form-options, inputs
 │   ├── chat/
-│   │   ├── components/  — ChatPanel ("Ask Robospresso"), ChatLog, ChatComposer
+│   │   ├── components/  — ChatPanel ("Ask Robospresso"), ChatLog, MessageParts (renderer registry), ChatComposer
 │   │   ├── constants/   — Zod composer schema, greeting, suggestions, error reply
-│   │   ├── hooks/       — useChat (messages, pending, send over a ChatTransport)
-│   │   └── utils/       — messages (types, fetchReply → POST /api/chat, toTurns)
+│   │   ├── hooks/       — useChat (@ai-sdk/react's useChat: messages, busy, searching, failed, send)
+│   │   └── utils/       — messages (transport → POST /api/chat, toTurns), parts (toPartView, isSearching)
 │   ├── store/
 │   │   ├── components/  — StoreFilters, MachineCard, MachineRating, MachineSprite
-│   │   ├── constants/   — Zod schemas (filter form + URL search), sort/rating options, disclaimer
+│   │   ├── constants/   — Zod schemas (filter form + URL search), sort/rating options, disclaimer, WebMCP input schema
+│   │   ├── hooks/       — useStoreSearchTool (WebMCP `search_espresso_machines`)
 │   │   ├── pages/       — StorePage (/store), MachinePage + MachineNotFound (/store/$slug)
 │   │   └── utils/       — query (form ↔ URL ↔ store query), machine-sprite, format, form-options
 │   ├── mascot/
@@ -179,6 +193,7 @@ The page offers tools to in-browser AI agents through [WebMCP](https://webmachin
 - Statuses live in a zustand store (`features/webmcp/stores/webmcp-store.ts`) so anything can show them. `useWebMcpSummary()` sums them up for the page (`summarizeStatuses`); `WebMcpBanner` renders it, with the status on `data-status`.
 - `execute` is read through a ref, but `inputSchema` and `annotations` are the tool's identity: keep them module constants, or the tool re-registers every render.
 - Derive `inputSchema` from Zod with `z.toJSONSchema`. Put agent-facing descriptions on the schema with `.meta({ description })` as the **last** call in each chain, and prefer checks that map to JSON Schema (`.gt`, `.int`, `.max`) over `.refine`, which `toJSONSchema` drops.
+- `search_espresso_machines` (`store/hooks/use-store-search-tool.ts`, mounted by `StorePage`) registers the store's shared tool with `SEARCH_TOOL_INPUT_SCHEMA` (`z.toJSONSchema` of `searchToolInputSchema`). A valid search replaces every filter on the form (`agentSearchToForm`; a rating between the select's steps shows the next one down) so the URL sync runs, and returns the result; invalid input changes nothing and returns the errors.
 - `fill_calculator` (`calculator/hooks/use-calculator-tool.ts`) validates with the pure `applyAgentFill` (any subset of fields, merged onto the form values), sets each sent field with `form.setFieldValue` so validation and the URL sync run as if typed, and returns `agentFillResult` (values, summary, verdict, message) or `{ ok: false, errors }`. A successful call makes the verdict mascots hop and shows "Filled by your agent". `useCalculatorTool` returns the tool's status.
 - Unit tests stub `document.modelContext` with `stubModelContext` from `test/unit/features/webmcp/model-context.ts` (spec-like: duplicate names reject; restore it in `finally`/`afterEach`, and reset the store with `resetWebMcpStore`). Playwright's Chromium has no WebMCP, so `test/e2e/webmcp.spec.ts` stubs it with `addInitScript` and calls the captured tool's `execute`.
 
@@ -197,16 +212,17 @@ Every pixel carries a `part` (`body`, `steam`, `z`, `sweat`; steam also has a `w
 
 ### Chat persona: Robospresso
 
-The chat (`features/chat`) is run by Robospresso, Bitspresso's espresso-machine robot cousin with aviator shades and a handlebar mustache (`features/mascot/utils/robot-sprite.ts`, one 20×20 text sprite). Two moods: `cool` and `searching`. While searching he holds a magnifying glass that sweeps across his shades (`animate-scan`, 9 pixels = `MAGNIFIER_SWEEP`) and his antenna blinks (`animate-blink`). Body colors read the same `--mug-*` properties as Bitspresso (`BASE_COLORS`), the panel band follows the flavor, and the glass keeps fixed colors (`MAGNIFIER_COLORS`) so it reads on every theme. Render with `<Robospresso mood animated className="size-16" />`.
+The chat (`features/chat`) is run by Robospresso, Bitspresso's espresso-machine robot cousin with aviator shades and a handlebar mustache (`features/mascot/utils/robot-sprite.ts`, one 20×20 text sprite). Two moods: `cool` and `searching`. While searching he holds a magnifying glass that sweeps across his shades (`animate-scan`, 9 pixels = `MAGNIFIER_SWEEP`) and his antenna blinks (`animate-blink`). Body colors read `--robot-*` properties that fall back to Bitspresso's `--mug-*` ones (`ROBOT_COLOR_VARS`); Night (and System dark) sets them to a light steel so he doesn't vanish on the dark tile, the panel band follows the flavor, and the glass keeps fixed colors (`MAGNIFIER_COLORS`) so it reads on every theme. Render with `<Robospresso mood animated className="size-16" />`.
 
 Favicons (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192/512.png`) are the header logo: the house-flavor mug winking on the dark screen tile. Regenerate them from `buildMascot('mug', 'wink', 'house')` if the sprite changes, resolving each `var(--mug-…, #hex)` fill to its Diner fallback.
 
 ### Store pages
 
-`/store` (`routes/store.tsx`) and `/store/$slug` (`routes/store_.$slug.tsx`; the `_` keeps it out of the grid's layout) render `@espressionism/store`. There are no nav links: the store is reached by URL, and later from Robospresso. Both pages show the "Demo store" disclaimer.
+`/store` (`routes/store.tsx`) and `/store/$slug` (`routes/store_.$slug.tsx`; the `_` keeps it out of the grid's layout) render `@espressionism/store`. There are no nav links: the store is reached by URL and from Robospresso's cards. Both pages show the "Demo store" disclaimer.
 
 - Filters are a TanStack Form (`storeFormSchema`): min/max price (`NumberField`, empty = no limit, no negatives, max ≥ min with the error on max), rating and sort (`SelectField`). Valid values sync to the URL through a debounced listener; defaults (empty boxes, `rating_desc`) stay out of it. While the form is invalid, results follow the URL.
 - Cards, the product page and its not-found screen carry the current search params, so "Back to store" restores the filters.
+- `MachineCard` has two variants: `grid` (store page) and `compact` (chat). The chat's cards and store link pass `newTab`: they open in a new tab with an `sr-only` "(opens in new tab)" and a ↗ icon, so the conversation stays.
 - Product pictures come from `buildMachineSprite(slug)`: one 20×20 machine whose body palette, accent and speckle noise are picked by a hash of the slug. Same slug, same picture.
 
 ### Exports
@@ -230,7 +246,8 @@ test/unit/features/mascot/utils/sprite.test.ts
 - Use `@testing-library/user-event` (`userEvent.setup()`) for every interaction; never `fireEvent`.
 - Use `waitFor` for state that updates after an interaction (TanStack Form validates after change/blur).
 - Unit tests run on `pool: 'vmThreads'`: jsdom is created once per worker and each file gets its own VM context. Don't rely on `instanceof` across contexts, and restore any globals a test changes.
-- `test/setup.ts` stubs `window.matchMedia` (light); theme tests override it with `stubMatchMedia` from `test/unit/features/theme/match-media.ts`.
+- `test/setup.ts` stubs `window.matchMedia` (light); theme tests override it with `stubMatchMedia` from `test/unit/features/theme/match-media.ts`. It also borrows Node's web streams (`TransformStream`, …), which jsdom's VM context lacks and the AI SDK's chat needs.
+- Chat tests pass a fake `ChatTransport` that returns scripted UI message chunks (see `ChatPanel.test.tsx`), inside a memory router since cards render `<Link>`s.
 - jest-dom matchers are not installed; assert on DOM properties directly (`input.valueAsNumber`, `el.textContent`, `el.getAttribute(...)`).
 
 #### E2E (Playwright)

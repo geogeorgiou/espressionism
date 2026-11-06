@@ -69,7 +69,7 @@ const C = {
   cherry: '#d8473a',
 }
 const W = 976,
-  H = 604
+  H = 724
 const PIX = 'Silkscreen',
   SANS = 'Karla'
 const used = { [PIX]: new Set(), [SANS]: new Set() }
@@ -168,29 +168,36 @@ function group(x, y, w, h, label) {
     text(x + 22, y + 5, label, { font: PIX, size: 12, fill: C.muted })
   )
 }
-// Orthogonal arrow through points; head at the last point.
-function arrow(points, { planned = false } = {}) {
+// Orthogonal arrow through points; a head at the last point, and at the
+// first one too when it goes both ways.
+function arrow(points, { planned = false, both = false } = {}) {
   const color = planned ? C.latte : C.cream
-  const [[x1, y1], [x2, y2]] = points.slice(-2)
-  const dx = Math.sign(x2 - x1),
-    dy = Math.sign(y2 - y1)
   const s = 9
-  const head = dx
-    ? `${x2},${y2} ${x2 - dx * s},${y2 - s} ${x2 - dx * s},${y2 + s}`
-    : `${x2},${y2} ${x2 - s},${y2 - dy * s} ${x2 + s},${y2 - dy * s}`
-  // Stop the line short of the tip so the head stays sharp.
+  // The head at `to`, pointing away from `from`, and where the line stops.
+  const tip = ([x1, y1], [x2, y2]) => {
+    const dx = Math.sign(x2 - x1),
+      dy = Math.sign(y2 - y1)
+    const head = dx
+      ? `${x2},${y2} ${x2 - dx * s},${y2 - s} ${x2 - dx * s},${y2 + s}`
+      : `${x2},${y2} ${x2 - s},${y2 - dy * s} ${x2 + s},${y2 - dy * s}`
+    return { head, stop: [x2 - dx * s, y2 - dy * s] }
+  }
+  const end = tip(...points.slice(-2))
+  const start = both ? tip(points[1], points[0]) : undefined
+  // Stop the line short of each tip so the heads stay sharp.
   const trimmed = points.map((p, i) =>
-    i === points.length - 1 ? [x2 - dx * s, y2 - dy * s] : p,
+    i === points.length - 1 ? end.stop : i === 0 && start ? start.stop : p,
   )
   const dt = trimmed.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ')
   return (
     `<path d="${dt}" fill="none" stroke="${color}" stroke-width="4" stroke-linejoin="miter"${planned ? ' stroke-dasharray="8 6"' : ''}/>` +
-    `<polygon points="${head}" fill="${color}"/>`
+    `<polygon points="${end.head}" fill="${color}"/>` +
+    (start ? `<polygon points="${start.head}" fill="${color}"/>` : '')
   )
 }
 const label = (x, y, s, o = {}) =>
   text(x, y, s, { font: PIX, size: 10, fill: C.muted, ...o })
-// Little pixel sparkle for the LLM.
+// Little pixel sparkle for Gemini.
 const SPARK = [
   '...L...',
   '...L...',
@@ -257,9 +264,9 @@ body += card({
   h: 112,
   band: C.teal,
   title: 'CHAT',
-  sub: 'Ask Robospresso',
-  lines: ['On the calculator page,', 'placeholder replies for now'],
-  status: 'partial',
+  sub: 'Ask Robospresso, on /',
+  lines: ['Streams text + product', 'cards (new tab)'],
+  status: 'live',
   textX: 140,
   icon: sprite(sprites.robot, 60, 292, 4),
 })
@@ -271,7 +278,7 @@ body += card({
   band: C.mocha,
   title: 'STORE',
   sub: 'routes /store, /store/$slug',
-  lines: ['Filters, sorting, product', 'pages, all in the URL'],
+  lines: ['Filters in the URL, plus', 'a WebMCP search tool'],
   status: 'live',
   textX: 140,
   icon: sprite(sprites.machines[0], 60, 436, 4),
@@ -285,7 +292,7 @@ body += card({
   band: C.teal,
   title: 'CHAT API',
   sub: 'POST /api/chat',
-  lines: ['Vercel Function'],
+  lines: ['Vercel Function · UI stream'],
   status: 'live',
 })
 body += card({
@@ -293,10 +300,11 @@ body += card({
   y: 268,
   w: 224,
   h: 100,
-  title: 'SEARCH TOOL',
-  sub: 'searchEspressoMachines',
-  lines: ['Filters + sorts the store'],
-  status: 'planned',
+  band: C.matcha,
+  title: 'TOOLS',
+  sub: 'search · show_machines',
+  lines: ['show_store_link'],
+  status: 'live',
 })
 
 body += card({
@@ -304,10 +312,11 @@ body += card({
   y: 160,
   w: 192,
   h: 128,
-  title: 'LLM',
-  sub: 'hosted, via the AI SDK',
-  lines: ['Answers only from', 'tool results'],
-  status: 'planned',
+  band: C.cherry,
+  title: 'GEMINI',
+  sub: 'Google AI Studio',
+  lines: ['Direct, no gateway;', 'key on the server'],
+  status: 'live',
   icon: spark(892, 238, 5),
 })
 
@@ -319,7 +328,7 @@ body += card({
   band: C.matcha,
   title: 'STORE DATA',
   sub: 'packages/store',
-  lines: ['10 machines, made-up prices', 'searchMachines() for UI + agent'],
+  lines: ['10 machines, made-up prices', 'one search tool, two adapters'],
   status: 'live',
   icon:
     sprite(sprites.machines[1], 720, 456, 3) +
@@ -327,62 +336,63 @@ body += card({
     sprite(sprites.machines[0], 860, 456, 3),
 })
 
-// Live flows
-body += arrow([
-  [364, 336],
-  [410, 336],
-  [410, 188],
-  [456, 188],
-])
-body += label(402, 262, 'QUESTION', { anchor: 'middle', rotate: -90 })
+body += card({
+  x: 48,
+  y: 600,
+  w: 312,
+  h: 92,
+  band: C.cherry,
+  title: 'BROWSER AGENT',
+  sub: 'any WebMCP client',
+  lines: ['fill_calculator + store search'],
+  status: 'live',
+})
+
+// Flows
+body += arrow(
+  [
+    [364, 336],
+    [410, 336],
+    [410, 188],
+    [456, 188],
+  ],
+  { both: true },
+)
+body += label(402, 262, 'ASK · STREAM', { anchor: 'middle', rotate: -90 })
 body += arrow([
   [364, 480],
   [436, 480],
 ])
 body += label(400, 470, 'READS', { anchor: 'middle' })
-// Planned flows
 body += arrow(
   [
     [688, 204],
     [748, 204],
   ],
-  { planned: true },
+  { both: true },
 )
 body += label(718, 194, 'PROMPT', { anchor: 'middle' })
-body += arrow(
-  [
-    [848, 292],
-    [848, 318],
-    [688, 318],
-  ],
-  { planned: true },
-)
+body += arrow([
+  [848, 292],
+  [848, 318],
+  [688, 318],
+])
 body += label(768, 308, 'TOOL CALL', { anchor: 'middle' })
-body += arrow(
-  [
-    [572, 372],
-    [572, 420],
-  ],
-  { planned: true },
-)
+body += arrow([
+  [572, 372],
+  [572, 420],
+])
 body += label(582, 400, 'READS')
-body += arrow(
-  [
-    [204, 396],
-    [204, 420],
-  ],
-  { planned: true },
-)
-body += label(216, 412, 'PRODUCT LINKS')
-
-// Legend
-const ly = 584
-body +=
-  `<path d="M440 ${ly - 4} H476" stroke="${C.cream}" stroke-width="4"/>` +
-  label(484, ly, 'WORKS TODAY')
-body +=
-  `<path d="M604 ${ly - 4} H648" stroke="${C.latte}" stroke-width="4" stroke-dasharray="8 6"/>` +
-  label(656, ly, 'PLANNED')
+body += arrow([
+  [204, 396],
+  [204, 420],
+])
+body += label(216, 412, 'CARDS LINK HERE')
+body += arrow([
+  [204, 596],
+  [204, 540],
+])
+body += label(216, 578, 'WEBMCP')
 
 // Fonts, subset to the characters used and embedded so the SVG renders the same inside <img>.
 const UA =
@@ -411,7 +421,7 @@ async function faces(family, query) {
 const fontCss =
   (await faces(PIX, 'Silkscreen')) + (await faces(SANS, 'Karla:wght@400;700'))
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges" role="img" aria-label="Espressionism architecture: the UI (calculator, Ask Robospresso chat, store pages) and the agent (POST /api/chat, a planned search tool and a planned external LLM) both read the shared store data package.">
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges" role="img" aria-label="Espressionism architecture: the chat sends questions to POST /api/chat, which prompts Gemini directly and streams back text plus product cards built by its tools (store search, show_machines, show_store_link) from the shared store data. Cards open the store pages in a new tab. In-browser agents use the same store search through WebMCP.">
 <defs><style>${fontCss.replace(/\s+/g, ' ')} text { text-rendering: geometricPrecision; }</style>
 <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="#ffffff" opacity="0.03"/></pattern></defs>
 <rect width="${W}" height="${H}" fill="${C.out}"/>
