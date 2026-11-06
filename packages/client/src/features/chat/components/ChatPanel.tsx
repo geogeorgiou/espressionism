@@ -29,14 +29,14 @@ export function ChatPanel({ transport, live = CHAT_LIVE }: ChatPanelProps) {
       aria-labelledby="chat-title"
       className="flex scroll-mt-6 flex-col overflow-hidden rounded-lg border-2 border-foreground bg-card text-card-foreground shadow-pixel"
     >
-      <header className="flex items-center gap-4 border-b-2 border-foreground bg-screen px-5 py-4 text-screen-foreground">
+      <header className="flex flex-wrap items-center gap-4 border-b-2 border-foreground bg-screen px-5 py-4 text-screen-foreground sm:flex-nowrap">
         <Robospresso
           mood={busy ? 'searching' : 'cool'}
           animated
           className="size-16 shrink-0 sm:size-20"
           label=""
         />
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <h2 id="chat-title" className="font-pixel text-lg">
             Ask Robospresso
           </h2>
@@ -44,7 +44,10 @@ export function ChatPanel({ transport, live = CHAT_LIVE }: ChatPanelProps) {
             {CHAT_STATUS_COPY[live ? 'live' : 'offline'].tagline}
           </p>
         </div>
-        <ChatStatusBadge live={live} />
+        {/* Own row on phones (no room beside the title), right-aligned from sm. */}
+        <div className="flex basis-full sm:ml-auto sm:basis-auto">
+          <ChatStatusBadge live={live} />
+        </div>
       </header>
       <ChatLog messages={messages} searching={searching} failed={failed} />
       <ChatComposer
