@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 
 import { Bitspresso } from '@/features/mascot/components/Bitspresso'
 import type { MascotFlavor, MascotMood } from '@/features/mascot/utils/sprite'
+import { captionInset } from '@/features/mascot/utils/sprite'
 
 import type { CoffeeSummary, Verdict } from '../utils/cost-model'
 import type { Currency } from '../utils/format'
@@ -71,7 +72,10 @@ export function VerdictPanel({
             flavor={flavor}
             className={mascotClass}
           />
-          <figcaption className="font-pixel text-xs tracking-wide opacity-80">
+          <figcaption
+            className="self-stretch text-center font-pixel text-xs tracking-wide opacity-80"
+            style={captionInset('togo')}
+          >
             To go
           </figcaption>
         </figure>
@@ -86,7 +90,10 @@ export function VerdictPanel({
             flavor={flavor}
             className={mascotClass}
           />
-          <figcaption className="font-pixel text-xs tracking-wide opacity-80">
+          <figcaption
+            className="self-stretch text-center font-pixel text-xs tracking-wide opacity-80"
+            style={captionInset('mug')}
+          >
             For here
           </figcaption>
         </figure>

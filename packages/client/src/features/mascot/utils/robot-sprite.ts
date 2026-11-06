@@ -5,7 +5,10 @@
  * magnifying glass.
  *
  * One 20×20 text sprite, one letter per pixel, "." is empty. Body colors
- * follow the active theme through the same --mug-* properties as Bitspresso;
+ * follow the active theme through --robot-* properties, which fall back to
+ * Bitspresso's --mug-* ones (see ROBOT_COLOR_VARS), so a theme only sets
+ * them where the robot needs its own palette (Night, so he isn't dark on
+ * dark);
  * the panel band and the coffee drip follow the flavor; the magnifying glass
  * keeps fixed colors so it reads on every theme.
  *
@@ -86,6 +89,29 @@ export const MAGNIFIER_COLORS: Record<
   S: { fill: '#b0703c', opacity: 1 },
 }
 
+/**
+ * Robospresso's theme properties, by sprite letter, each falling back to the
+ * mug color Bitspresso uses for the same job. Shades and mustache default to
+ * the outline.
+ */
+export const ROBOT_COLOR_VARS: Record<string, { name: string; mug: string }> = {
+  K: { name: '--robot-outline', mug: 'K' },
+  W: { name: '--robot-body', mug: 'W' },
+  H: { name: '--robot-shine', mug: 'H' },
+  S: { name: '--robot-shade', mug: 'S' },
+  D: { name: '--robot-trim', mug: 'D' },
+  O: { name: '--robot-cup', mug: 'O' },
+  G: { name: '--robot-shades', mug: 'K' },
+  U: { name: '--robot-mustache', mug: 'K' },
+}
+
+const ROBOT_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(ROBOT_COLOR_VARS).map(([letter, { name, mug }]) => [
+    letter,
+    `var(${name}, ${BASE_COLORS[mug]})`,
+  ]),
+)
+
 /** Builds the full 20×20 frame as a flat list of lit pixels. */
 export function buildRobospresso(
   mood: RobotMood,
@@ -93,14 +119,7 @@ export function buildRobospresso(
 ): RobotPixel[] {
   const { B, N, C } = FLAVOR_COLORS[flavor]
   const colors: Record<string, string> = {
-    K: BASE_COLORS.K,
-    W: BASE_COLORS.W,
-    H: BASE_COLORS.H,
-    S: BASE_COLORS.S,
-    D: BASE_COLORS.D,
-    O: BASE_COLORS.O,
-    G: BASE_COLORS.K,
-    U: BASE_COLORS.K,
+    ...ROBOT_COLORS,
     A: BASE_COLORS.R,
     B,
     N,

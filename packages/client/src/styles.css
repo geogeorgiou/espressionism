@@ -120,6 +120,16 @@
     --mug-cheeks: #e48aa0;
     --mug-steam: #ffffff;
     --mug-sweat: #8fd3ff;
+
+    /* Robospresso: same steel as [data-theme='night'] */
+    --robot-outline: #0b101c;
+    --robot-body: #a9bcd9;
+    --robot-shine: #e6edf7;
+    --robot-shade: #6d84ad;
+    --robot-trim: #d9dce4;
+    --robot-cup: #fdf6e8;
+    --robot-shades: #0f1626;
+    --robot-mustache: #2a1810;
   }
 }
 
@@ -219,6 +229,16 @@
   --mug-cheeks: #e48aa0;
   --mug-steam: #ffffff;
   --mug-sweat: #8fd3ff;
+
+  /* Robospresso: brushed steel, so he reads on the dark tile */
+  --robot-outline: #0b101c;
+  --robot-body: #a9bcd9;
+  --robot-shine: #e6edf7;
+  --robot-shade: #6d84ad;
+  --robot-trim: #d9dce4;
+  --robot-cup: #fdf6e8;
+  --robot-shades: #0f1626;
+  --robot-mustache: #2a1810;
 }
 
 [data-theme='mint'] {

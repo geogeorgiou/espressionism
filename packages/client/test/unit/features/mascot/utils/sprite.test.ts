@@ -6,7 +6,9 @@ import {
   MASCOT_FLAVORS,
   MASCOT_FORMS,
   MASCOT_MOODS,
+  baseCenter,
   buildMascot,
+  captionInset,
   stampFace,
 } from '@/features/mascot/utils/sprite'
 
@@ -131,5 +133,18 @@ describe('Bitspresso theme colors', () => {
       buildMascot('togo', 'idle', 'cherry').map((p) => p.fill),
     )
     expect(fills).toContain(FLAVOR_COLORS.cherry.B)
+  })
+})
+
+describe('caption alignment', () => {
+  it('finds each base: the mug sits left of center, the cup on it', () => {
+    expect(baseCenter('mug')).toBe(8)
+    expect(baseCenter('togo')).toBe(10)
+  })
+
+  it('pads the caption so it centers under the base', () => {
+    // Mug: content box is 80% wide from the left, so it centers at 8/20.
+    expect(captionInset('mug')).toEqual({ paddingRight: '20%' })
+    expect(captionInset('togo')).toEqual({})
   })
 })

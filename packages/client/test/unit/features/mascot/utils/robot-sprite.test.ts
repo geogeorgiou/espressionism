@@ -61,7 +61,7 @@ describe('Robospresso sprite', () => {
 
   it('reads body colors from the theme and the panel from the flavor', () => {
     const fills = new Set(buildRobospresso('cool', 'matcha').map((p) => p.fill))
-    expect(fills).toContain('var(--mug-body, #f4ead8)')
+    expect(fills).toContain('var(--robot-body, var(--mug-body, #f4ead8))')
     expect(fills).toContain(FLAVOR_COLORS.matcha.B)
     expect(fills).not.toContain(FLAVOR_COLORS.house.B)
   })
