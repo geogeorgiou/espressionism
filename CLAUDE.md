@@ -44,6 +44,7 @@ Run from the repo root:
 - **Format + lint + type check:** `pnpm check` (`pnpm check --fix` to autofix)
 - **Unit tests:** `pnpm test:unit`
 - **Secrets in the bundle:** `pnpm check:secrets` builds the client with a canary Gemini key into a temp folder and fails if it shows up in any output file; it also scans `dist/` for Google key patterns (`scripts/check-secrets.mjs`, runs in CI after the build). Run it after touching `vite.config.ts`, `vite/agent-api.ts` or anything that reads env.
+- **Vercel Functions load:** `pnpm check:api` imports every `api/*.ts` with Node's own loader (native type stripping, module-type detection off, as on Vercel) and fails unless each one loads and exports `POST` (`scripts/check-api.mjs`, runs in CI after the build). Needs `pnpm build` first.
 - **Lint GitHub Actions:** `pnpm lint:actions` (zizmor with online audits; needs `brew install zizmor` and `GH_TOKEN` or `gh auth login`)
 - **Update GitHub Actions:** `pnpm actions:up` (interactive actions-up, then zizmor); `pnpm actions:outdated` only reports
 - **README diagram:** `pnpm docs:architecture` redraws `docs/assets/architecture.svg` from the app's sprites (`scripts/generate-architecture.mjs`; needs network for the fonts). Rerun it when the architecture or a sprite changes.
@@ -82,6 +83,7 @@ test/unit/       — handler and reply tests (Vitest, node environment)
 
 - **Two entry points.** `@espressionism/agent` is the server runtime: `exports.default` points at the bundle `vp pack` writes to `dist/index.mjs` (types come from `src`). `@espressionism/agent/contract` is TypeScript source with no server code, safe to import in the browser; the client validates replies with it.
 - **Hosts.** On Vercel, `api/chat.ts` exports `POST` and calls the handler; the root `pnpm build` builds the agent before Vercel bundles the function, and the `vercel.json` rewrite skips `/api/`. Locally, `packages/client/vite/agent-api.ts` serves the same handler at `/api/chat`: `pnpm dev` loads the agent's source through Vite (no build needed), `vp preview` (and so the e2e tests) imports the built package. The client's `build` task depends on the agent's build for that reason.
+- **`api/` is plain Node ESM.** Vercel compiles each `api/*.ts` to `.js` without bundling, and Node loads it as ESM only because the root `package.json` has `"type": "module"`: keep it. Each function is a single file that imports only `@espressionism/agent` (plain ESM would need `.js` on relative imports, against the extensionless rule); shared code goes in the agent.
 - **One handler per process.** Create the handler once (module scope), not per request.
 - **Store data.** The contract builds on `@espressionism/store`'s `machineSchema`. The store is a **dev** dependency on purpose: `vp pack` inlines dev dependencies, so the Vercel Function never loads the store's TypeScript at runtime.
 - **Contract changes** go in `contract.ts` with a matching handler or reply test; the client sends turns with `toTurns` and parses display tool outputs with the contract's schemas.
