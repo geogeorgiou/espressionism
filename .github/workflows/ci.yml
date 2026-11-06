@@ -40,6 +40,10 @@ jobs:
       - name: API key stays out of the bundle
         run: pnpm check:secrets
 
+      # Loads api/*.ts with Node's own loader, as Vercel does
+      - name: Vercel Functions load
+        run: pnpm check:api
+
   e2e:
     name: E2E
     runs-on: ubuntu-latest

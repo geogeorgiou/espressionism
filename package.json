@@ -14,6 +14,7 @@
   ],
   "license": "MIT",
   "author": "Georgios Georgiou",
+  "type": "module",
   "scripts": {
     "dev": "vp run -r --parallel dev",
     "dev:client": "vp run --filter @espressionism/client dev",
@@ -28,6 +29,7 @@
     "docs:architecture": "node scripts/generate-architecture.mjs",
     "check": "vp check",
     "check:secrets": "node scripts/check-secrets.mjs",
+    "check:api": "node --no-experimental-detect-module scripts/check-api.mjs",
     "test:unit": "vp run -r test:unit",
     "test:e2e": "vp run -r test:e2e",
     "prepare": "vp config --no-agent"
