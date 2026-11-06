@@ -3,7 +3,10 @@
  * code, so the client can import it (`@espressionism/agent/contract`)
  * without pulling the agent into the browser bundle.
  */
+import { STORE_SORTS, machineSchema } from '@espressionism/store'
 import { z } from 'zod'
+
+export { machineSchema }
 
 export const CHAT_ENDPOINT = '/api/chat'
 
@@ -41,31 +44,18 @@ export const chatReplySchema = z.object({
 /** Any error from the agent. */
 export const chatErrorSchema = z.object({ error: z.string() })
 
-/** One espresso machine from the Skroutz listing (roadmap steps 2–4). */
-export const machineSchema = z.object({
-  name: z.string().min(1),
-  price: z.number().nonnegative(),
-  currency: z.literal('EUR'),
-  /** 0–5 stars; null when the listing shows no rating yet. */
-  rating: z.number().min(0).max(5).nullable(),
-  reviewCount: z.number().int().nonnegative(),
-  url: z.url(),
-})
-
 /**
- * What the search tool returns: the cached listing, filtered and sorted in
- * memory. Skroutz itself never sees these filters.
+ * What the search tool returns: the store catalog, filtered and sorted by
+ * `searchMachines` from `@espressionism/store`.
  */
 export const searchResultSchema = z.object({
-  query: z.literal('espresso machine'),
-  source: z.literal('skroutz.gr'),
-  fetchedAt: z.iso.datetime(),
+  source: z.literal('espressionism-store'),
   filters: z.object({
     minPrice: z.number().nonnegative().optional(),
     maxPrice: z.number().nonnegative().optional(),
     minRating: z.number().min(0).max(5).optional(),
   }),
-  sort: z.enum(['price_asc', 'price_desc', 'rating_desc']),
+  sort: z.enum(STORE_SORTS),
   total: z.number().int().nonnegative(),
   items: z.array(machineSchema),
 })
@@ -74,5 +64,5 @@ export type ChatTurn = z.infer<typeof chatTurnSchema>
 export type ChatRequest = z.infer<typeof chatRequestSchema>
 export type ChatReply = z.infer<typeof chatReplySchema>
 export type ChatError = z.infer<typeof chatErrorSchema>
-export type Machine = z.infer<typeof machineSchema>
+export type { Machine } from '@espressionism/store'
 export type SearchResult = z.infer<typeof searchResultSchema>

@@ -11,7 +11,7 @@ interface ChatPanelProps {
 }
 
 /**
- * "Ask Robospresso": a chat about espresso machines listed on Skroutz, run by
+ * "Ask Robospresso": a chat about espresso machines in our demo store, run by
  * Bitspresso's robot cousin.
  * Answers come from `@espressionism/agent` at `/api/chat`.
  */

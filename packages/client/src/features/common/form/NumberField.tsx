@@ -17,6 +17,7 @@ interface NumberFieldProps {
   suffix?: string
   /** Whole numbers only: switches the mobile keyboard to digits. */
   integer?: boolean
+  placeholder?: string
 }
 
 export function NumberField({
@@ -25,6 +26,7 @@ export function NumberField({
   prefix,
   suffix,
   integer = false,
+  placeholder,
 }: NumberFieldProps) {
   const field = useFieldContext<number>()
   const id = useId()
@@ -57,6 +59,7 @@ export function NumberField({
           inputMode={integer ? 'numeric' : 'decimal'}
           autoComplete="off"
           value={text}
+          placeholder={placeholder}
           onChange={(e) => {
             setText(e.target.value)
             field.handleChange(parseDecimal(e.target.value))

@@ -8,6 +8,7 @@ api/
 packages/
   agent/    — @espressionism/agent: Robospresso's brain (framework-free)
   client/   — TanStack Start frontend (SPA mode)
+  store/    — @espressionism/store: the demo store's catalog + pure search
 ```
 
 The layout mirrors `fullstack-app-starter`. Vercel serves the client's static build and runs `api/*.ts` as functions; see [Agent](#agent-packagesagent).
@@ -56,7 +57,7 @@ pnpm exec vp test run test/unit/features/calculator/utils/cost-model.test.ts
 
 The chat integration plan (phases, checklists, open questions) lives in [`docs/plan.md`](docs/plan.md): tick items there as phases land.
 
-Everything behind the chat lives here, with no framework: `createChatHandler(config)` returns `(request: Request) => Promise<Response>`, so any host can serve it in a few lines. Today it answers with a placeholder (`persona.ts`); the scraper, cache, tool and model land here in later steps.
+Everything behind the chat lives here, with no framework: `createChatHandler(config)` returns `(request: Request) => Promise<Response>`, so any host can serve it in a few lines. Today it answers with a placeholder (`persona.ts`); the model and the store search tool land here in later steps.
 
 ```
 src/
@@ -69,8 +70,26 @@ test/unit/       — handler tests (Vitest, node environment)
 
 - **Two entry points.** `@espressionism/agent` is the server runtime: `exports.default` points at the bundle `vp pack` writes to `dist/index.mjs` (types come from `src`). `@espressionism/agent/contract` is TypeScript source with no server code, safe to import in the browser; the client validates replies with it.
 - **Hosts.** On Vercel, `api/chat.ts` exports `POST` and calls the handler; the root `pnpm build` builds the agent before Vercel bundles the function, and the `vercel.json` rewrite skips `/api/`. Locally, `packages/client/vite/agent-api.ts` serves the same handler at `/api/chat`: `pnpm dev` loads the agent's source through Vite (no build needed), `vp preview` (and so the e2e tests) imports the built package. The client's `build` task depends on the agent's build for that reason.
-- **One handler per process.** Create the handler once (module scope), not per request: later steps keep the listing cache inside it.
+- **One handler per process.** Create the handler once (module scope), not per request.
+- **Store data.** The contract builds on `@espressionism/store`'s `machineSchema`. The store is a **dev** dependency on purpose: `vp pack` inlines dev dependencies, so the Vercel Function never loads the store's TypeScript at runtime.
 - **Contract changes** go in `contract.ts` with a matching handler test; the client's `fetchReply` parses replies with `chatReplySchema`.
+
+## Store (`packages/store/`)
+
+The demo espresso-machine store, shared by the client's store pages and (later) Robospresso's search tool. No third party: brands are real, prices and ratings are made up. Source-only TypeScript (`exports` → `src/index.ts`), no build step.
+
+```
+src/
+├── catalog.json — 10 machines, generated once with faker (throwaway script, not a dependency)
+├── catalog.ts   — CATALOG, parsed with machineSchema on load
+├── schema.ts    — machineSchema, STORE_SORTS, DEFAULT_SORT, storeFiltersSchema
+├── search.ts    — searchMachines, findMachine, priceRange (pure)
+└── index.ts
+test/unit/       — catalog invariants + search (Vitest, node environment)
+```
+
+- **Sorting.** `rating_desc` (default; unrated last), `price_asc`, `price_desc`; ties by name. Price bounds are inclusive; `minRating` hides unrated machines.
+- **Catalog rules** are pinned by `catalog.test.ts`: ten machines, unique slugs, `url` = `/store/<slug>`, prices €149–1,499, ratings 2.8–4.9 (one decimal), exactly one unrated machine, at least two cheaper machines that out-rate pricier ones. Hand edits to `catalog.json` must keep them, and the client's e2e specs assert exact orders, so update `test/e2e/store.spec.ts` with it.
 
 ## Client architecture (`packages/client/`)
 
@@ -80,7 +99,7 @@ test/unit/       — handler tests (Vitest, node environment)
 src/
 ├── components/
 │   ├── ui/              — shadcn/ui primitives
-│   ├── SiteHeader.tsx   — app shell, not owned by a domain: compact header below `lg`
+│   ├── SiteHeader.tsx   — app shell: on `/` a compact header below `lg`; on other pages a slim bar at every width
 │   ├── HeroHeader.tsx   — landing hero (nav, headline, mascot) from `lg` up
 │   └── SiteFooter.tsx
 ├── features/
@@ -95,6 +114,11 @@ src/
 │   │   ├── constants/   — Zod composer schema, greeting, suggestions, error reply
 │   │   ├── hooks/       — useChat (messages, pending, send over a ChatTransport)
 │   │   └── utils/       — messages (types, fetchReply → POST /api/chat, toTurns)
+│   ├── store/
+│   │   ├── components/  — StoreFilters, MachineCard, MachineRating, MachineSprite
+│   │   ├── constants/   — Zod schemas (filter form + URL search), sort/rating options, disclaimer
+│   │   ├── pages/       — StorePage (/store), MachinePage + MachineNotFound (/store/$slug)
+│   │   └── utils/       — query (form ↔ URL ↔ store query), machine-sprite, format, form-options
 │   ├── mascot/
 │   │   ├── components/  — Bitspresso, Robospresso (SVG pixel renderers), PixelRect
 │   │   └── utils/       — sprite (text sprites, faces, flavors), robot-sprite
@@ -116,7 +140,7 @@ src/
 
 ### Thin-routes rule
 
-Route files (`src/routes/*.tsx`) contain **only** `createFileRoute` with `validateSearch`, `beforeLoad` (redirects), `loaderDeps`, `loader`, `pendingComponent`, `errorComponent` and `component`. No component definitions, no business logic. Unknown paths hit the catch-all `routes/$.tsx`, which redirects to `/` instead of showing a Not Found page. Pages import `Route` from their route file for `useSearch` / `useNavigate`.
+Route files (`src/routes/*.tsx`) contain **only** `createFileRoute` with `validateSearch`, `beforeLoad` (redirects), `loaderDeps`, `loader`, `pendingComponent`, `errorComponent`, `notFoundComponent` and `component`. No component definitions, no business logic. Unknown paths hit the catch-all `routes/$.tsx`, which redirects to `/` instead of showing a Not Found page; an unknown product slug throws `notFound()` and `/store/$slug` renders `MachineNotFound` at the same URL. Pages import `Route` from their route file for `useSearch` / `useNavigate`.
 
 ### Business logic stays pure
 
@@ -175,6 +199,14 @@ Every pixel carries a `part` (`body`, `steam`, `z`, `sweat`; steam also has a `w
 The chat (`features/chat`) is run by Robospresso, Bitspresso's espresso-machine robot cousin with aviator shades and a handlebar mustache (`features/mascot/utils/robot-sprite.ts`, one 20×20 text sprite). Two moods: `cool` and `searching`. While searching he holds a magnifying glass that sweeps across his shades (`animate-scan`, 9 pixels = `MAGNIFIER_SWEEP`) and his antenna blinks (`animate-blink`). Body colors read the same `--mug-*` properties as Bitspresso (`BASE_COLORS`), the panel band follows the flavor, and the glass keeps fixed colors (`MAGNIFIER_COLORS`) so it reads on every theme. Render with `<Robospresso mood animated className="size-16" />`.
 
 Favicons (`public/favicon.svg`, `favicon.ico`, `apple-touch-icon.png`, `icon-192/512.png`) are the header logo: the house-flavor mug winking on the dark screen tile. Regenerate them from `buildMascot('mug', 'wink', 'house')` if the sprite changes, resolving each `var(--mug-…, #hex)` fill to its Diner fallback.
+
+### Store pages
+
+`/store` (`routes/store.tsx`) and `/store/$slug` (`routes/store_.$slug.tsx`; the `_` keeps it out of the grid's layout) render `@espressionism/store`. There are no nav links: the store is reached by URL, and later from Robospresso. Both pages show the "Demo store" disclaimer.
+
+- Filters are a TanStack Form (`storeFormSchema`): min/max price (`NumberField`, empty = no limit, no negatives, max ≥ min with the error on max), rating and sort (`SelectField`). Valid values sync to the URL through a debounced listener; defaults (empty boxes, `rating_desc`) stay out of it. While the form is invalid, results follow the URL.
+- Cards, the product page and its not-found screen carry the current search params, so "Back to store" restores the filters.
+- Product pictures come from `buildMachineSprite(slug)`: one 20×20 machine whose body palette, accent and speckle noise are picked by a hash of the slug. Same slug, same picture.
 
 ### Exports
 

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@espressionism/agent": "workspace:*",
+    "@espressionism/store": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "0.10.2",
     "@tanstack/react-form": "^1.33.5",

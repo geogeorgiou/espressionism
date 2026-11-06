@@ -73,7 +73,7 @@ export function ChatLog({ messages, pending }: ChatLogProps) {
           <Avatar mood="searching" />
           <p className="rounded-md border-2 border-dashed border-foreground bg-card px-3 py-2 font-pixel text-sm text-muted-foreground">
             <span className="animate-pulse motion-reduce:animate-none">
-              Scanning Skroutz for deals…
+              Scanning the store…
             </span>
           </p>
         </li>

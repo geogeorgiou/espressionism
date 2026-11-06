@@ -1,0 +1,92 @@
+[
+  {
+    "slug": "sage-bolt-lux",
+    "brand": "Sage",
+    "name": "Sage Bolt Lux",
+    "price": 369,
+    "currency": "EUR",
+    "rating": 3.3,
+    "url": "/store/sage-bolt-lux"
+  },
+  {
+    "slug": "rancilio-barista-plus",
+    "brand": "Rancilio",
+    "name": "Rancilio Barista Plus",
+    "price": 209,
+    "currency": "EUR",
+    "rating": 3.5,
+    "url": "/store/rancilio-barista-plus"
+  },
+  {
+    "slug": "gaggia-touch-lux",
+    "brand": "Gaggia",
+    "name": "Gaggia Touch Lux",
+    "price": 1209,
+    "currency": "EUR",
+    "rating": 4.7,
+    "url": "/store/gaggia-touch-lux"
+  },
+  {
+    "slug": "breville-dual",
+    "brand": "Breville",
+    "name": "Breville Dual",
+    "price": 959,
+    "currency": "EUR",
+    "rating": 3.5,
+    "url": "/store/breville-dual"
+  },
+  {
+    "slug": "lelit-aurora-plus",
+    "brand": "Lelit",
+    "name": "Lelit Aurora Plus",
+    "price": 859,
+    "currency": "EUR",
+    "rating": 4.3,
+    "url": "/store/lelit-aurora-plus"
+  },
+  {
+    "slug": "philips-evo",
+    "brand": "Philips",
+    "name": "Philips Evo",
+    "price": 359,
+    "currency": "EUR",
+    "rating": 3.2,
+    "url": "/store/philips-evo"
+  },
+  {
+    "slug": "sage-evo-2",
+    "brand": "Sage",
+    "name": "Sage Evo 2",
+    "price": 689,
+    "currency": "EUR",
+    "rating": null,
+    "url": "/store/sage-evo-2"
+  },
+  {
+    "slug": "delonghi-duetto-2",
+    "brand": "De'Longhi",
+    "name": "De'Longhi Duetto 2",
+    "price": 1189,
+    "currency": "EUR",
+    "rating": 3.8,
+    "url": "/store/delonghi-duetto-2"
+  },
+  {
+    "slug": "lelit-duetto-mini",
+    "brand": "Lelit",
+    "name": "Lelit Duetto Mini",
+    "price": 1079,
+    "currency": "EUR",
+    "rating": 3.8,
+    "url": "/store/lelit-duetto-mini"
+  },
+  {
+    "slug": "breville-evo-2",
+    "brand": "Breville",
+    "name": "Breville Evo 2",
+    "price": 1359,
+    "currency": "EUR",
+    "rating": 4.3,
+    "url": "/store/breville-evo-2"
+  }
+]

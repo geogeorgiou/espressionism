@@ -17,7 +17,7 @@ export type ChatFormValues = z.input<typeof chatMessageSchema>
 export const CHAT_DEFAULT_VALUES: ChatFormValues = { message: '' }
 
 export const CHAT_GREETING =
-  "Ciao! Robospresso here, your espresso concierge. Give me a budget and I'll hunt down machines on Skroutz, cheapest first."
+  "Ciao! Robospresso here, your espresso concierge. Give me a budget and I'll search our store for machines, best rated first."
 
 /** Starter questions shown above the composer. */
 export const CHAT_SUGGESTIONS = [
