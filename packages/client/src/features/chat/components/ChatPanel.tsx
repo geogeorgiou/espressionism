@@ -1,22 +1,27 @@
 import { Robospresso } from '@/features/mascot/components/Robospresso'
 
+import { CHAT_LIVE, CHAT_STATUS_COPY } from '../constants'
 import { useChat } from '../hooks/use-chat'
-import type { ChatTransport } from '../utils/messages'
+import type { RobospressoTransport } from '../utils/messages'
 import { ChatComposer } from './ChatComposer'
 import { ChatLog } from './ChatLog'
+import { ChatStatusBadge } from './ChatStatusBadge'
 
 interface ChatPanelProps {
   /** How questions reach the agent; defaults to `POST /api/chat`. */
-  transport?: ChatTransport
+  transport?: RobospressoTransport
+  /** Whether a model is configured; defaults to this build's flag. */
+  live?: boolean
 }
 
 /**
  * "Ask Robospresso": a chat about espresso machines in our demo store, run by
  * Bitspresso's robot cousin.
- * Answers come from `@espressionism/agent` at `/api/chat`.
+ * Answers stream from `@espressionism/agent` at `/api/chat`: text, plus
+ * product cards and a store link drawn from the agent's display tools.
  */
-export function ChatPanel({ transport }: ChatPanelProps) {
-  const { messages, pending, send } = useChat({ transport })
+export function ChatPanel({ transport, live = CHAT_LIVE }: ChatPanelProps) {
+  const { messages, busy, searching, failed, send } = useChat({ transport })
 
   return (
     <section
@@ -26,7 +31,7 @@ export function ChatPanel({ transport }: ChatPanelProps) {
     >
       <header className="flex items-center gap-4 border-b-2 border-foreground bg-screen px-5 py-4 text-screen-foreground">
         <Robospresso
-          mood={pending ? 'searching' : 'cool'}
+          mood={busy ? 'searching' : 'cool'}
           animated
           className="size-16 shrink-0 sm:size-20"
           label=""
@@ -36,17 +41,15 @@ export function ChatPanel({ transport }: ChatPanelProps) {
             Ask Robospresso
           </h2>
           <p className="text-sm opacity-85">
-            Your espresso concierge. Shades on, deals found.
+            {CHAT_STATUS_COPY[live ? 'live' : 'offline'].tagline}
           </p>
         </div>
-        <span className="ml-auto hidden shrink-0 bg-screen-foreground px-2.5 py-1 font-pixel text-xs text-screen sm:inline">
-          Preview
-        </span>
+        <ChatStatusBadge live={live} />
       </header>
-      <ChatLog messages={messages} pending={pending} />
+      <ChatLog messages={messages} searching={searching} failed={failed} />
       <ChatComposer
         onSend={send}
-        busy={pending}
+        busy={busy}
         showSuggestions={!messages.some((m) => m.role === 'user')}
       />
     </section>

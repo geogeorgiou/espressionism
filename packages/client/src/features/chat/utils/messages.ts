@@ -1,42 +1,73 @@
-import type { ChatTurn } from '@espressionism/agent/contract'
-import { CHAT_ENDPOINT, chatReplySchema } from '@espressionism/agent/contract'
+import type {
+  ChatTurn,
+  RobospressoMessage,
+} from '@espressionism/agent/contract'
+import {
+  CHAT_ENDPOINT,
+  showMachinesOutputSchema,
+} from '@espressionism/agent/contract'
+import { DefaultChatTransport } from 'ai'
+import type { ChatTransport } from 'ai'
 
+export type { RobospressoMessage }
 export type ChatRole = ChatTurn['role']
+export type RobospressoTransport = ChatTransport<RobospressoMessage>
 
-export interface ChatMessage {
-  id: string
-  role: ChatRole
-  text: string
-  /** True for the fallback shown when the agent couldn't answer. */
-  failed?: boolean
+export const GREETING_ID = 'greeting'
+
+/** Longest turn the agent accepts (`chatTurnSchema`). */
+const MAX_TURN_LENGTH = 2000
+
+/**
+ * The real transport: `POST /api/chat` with text turns only (see
+ * `@espressionism/agent`), answered by a UI message stream.
+ */
+export function createChatTransport(): RobospressoTransport {
+  return new DefaultChatTransport<RobospressoMessage>({
+    api: CHAT_ENDPOINT,
+    prepareSendMessagesRequest: ({ messages }) => ({
+      body: { messages: toTurns(messages) },
+    }),
+  })
 }
 
-/** Sends the conversation and resolves with Robospresso's answer. */
-export type ChatTransport = (
-  messages: ChatTurn[],
-  signal: AbortSignal,
-) => Promise<string>
+/** Every text part of a message, joined. */
+export function messageText(message: RobospressoMessage): string {
+  return message.parts
+    .map((part) => (part.type === 'text' ? part.text : ''))
+    .join('')
+    .trim()
+}
 
-/** The real transport: `POST /api/chat` (see `@espressionism/agent`). */
-export const fetchReply: ChatTransport = async (messages, signal) => {
-  const response = await fetch(CHAT_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages }),
-    signal,
+/** Slugs of the machines a message drew as cards. */
+function shownSlugs(message: RobospressoMessage): string[] {
+  return message.parts.flatMap((part) => {
+    if (part.type !== 'tool-show_machines' || part.state !== 'output-available')
+      return []
+    const output = showMachinesOutputSchema.safeParse(part.output)
+    return output.success && output.data.ok
+      ? output.data.items.map((m) => m.slug)
+      : []
   })
-  if (!response.ok) throw new Error(`Chat request failed (${response.status})`)
-  return chatReplySchema.parse(await response.json()).message.text
 }
 
 /**
- * The turns the agent reads: everything said so far, minus the greeting and
- * any failed fallback (UI chrome, not part of the conversation).
+ * The turns the agent reads: everything said so far, minus the greeting
+ * (UI chrome, not part of the conversation). Tool parts stay in the browser;
+ * an assistant turn only notes which cards it showed, so "the second one"
+ * still means something on the next question.
  */
-export function toTurns(messages: ChatMessage[]): ChatTurn[] {
-  return messages
-    .filter((m) => m.id !== GREETING_ID && !m.failed)
-    .map(({ role, text }) => ({ role, text }))
+export function toTurns(messages: RobospressoMessage[]): ChatTurn[] {
+  return messages.flatMap((message): ChatTurn[] => {
+    if (message.id === GREETING_ID || message.role === 'system') return []
+    const slugs = message.role === 'assistant' ? shownSlugs(message) : []
+    const text = [
+      messageText(message),
+      slugs.length > 0 ? `[Cards shown: ${slugs.join(', ')}]` : '',
+    ]
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, MAX_TURN_LENGTH)
+    return text ? [{ role: message.role, text }] : []
+  })
 }
-
-export const GREETING_ID = 'greeting'

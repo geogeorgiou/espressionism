@@ -1,3 +1,5 @@
+import * as streamWeb from 'node:stream/web'
+
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vite-plus/test'
 
@@ -22,4 +24,16 @@ if (typeof window.matchMedia !== 'function') {
       dispatchEvent: () => false,
     }),
   })
+}
+
+// The VM context jsdom runs in lacks some of Node's web streams, which the
+// AI SDK's chat uses to read Robospresso's answers. Borrow Node's.
+for (const [name, value] of Object.entries(streamWeb)) {
+  if (!(name in globalThis)) {
+    Object.defineProperty(globalThis, name, {
+      writable: true,
+      configurable: true,
+      value,
+    })
+  }
 }

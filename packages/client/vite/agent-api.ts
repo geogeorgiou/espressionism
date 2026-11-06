@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url'
 
 import type * as Agent from '@espressionism/agent'
 import type { Connect, Plugin } from 'vite'
+import { loadEnv } from 'vite'
 
 type ChatHandler = Agent.ChatHandler
 
@@ -29,8 +30,9 @@ export function agentApi(): Plugin {
   return {
     name: 'espressionism:agent-api',
     configureServer(server) {
-      // One handler per loaded module, so state (the future listing cache)
-      // survives between requests and resets when the agent source changes.
+      const env = agentEnv(server.config.mode, server.config.envDir)
+      // One handler per loaded module: created once, and recreated when the
+      // agent source changes.
       const handlers = new WeakMap<object, ChatHandler>()
       server.middlewares.use(
         middleware(async () => {
@@ -39,7 +41,7 @@ export function agentApi(): Plugin {
           )) as typeof Agent
           let handler = handlers.get(agent)
           if (!handler) {
-            handler = agent.createChatHandler()
+            handler = agent.createChatHandler(agent.agentConfigFromEnv(env))
             handlers.set(agent, handler)
           }
           return handler
@@ -47,16 +49,40 @@ export function agentApi(): Plugin {
       )
     },
     configurePreviewServer(server) {
+      const env = agentEnv(server.config.mode, server.config.envDir)
       let handler: Promise<ChatHandler> | undefined
       server.middlewares.use(
         middleware(() => {
           handler ??= (import(AGENT_PACKAGE) as Promise<typeof Agent>).then(
-            (agent) => agent.createChatHandler(),
+            (agent) => agent.createChatHandler(agent.agentConfigFromEnv(env)),
           )
           return handler
         }),
       )
     },
+  }
+}
+
+/**
+ * True when the agent will answer with a model (an API key is set), false
+ * when it falls back to the placeholder. Baked into the bundle as
+ * `__CHAT_LIVE__`: a plain boolean, so the browser learns the mode, never
+ * the key.
+ */
+export function isChatLive(mode: string, envDir: string): boolean {
+  return Boolean(agentEnv(mode, envDir).GOOGLE_GENERATIVE_AI_API_KEY?.trim())
+}
+
+/**
+ * The agent's variables from `.env` files (and the shell), read on the
+ * server only. The empty prefix loads unprefixed names too; none of this
+ * reaches the client bundle, which only sees `VITE_*` variables.
+ */
+function agentEnv(mode: string, envDir: string | false): Agent.AgentEnv {
+  const env = loadEnv(mode, envDir || process.cwd(), '')
+  return {
+    GOOGLE_GENERATIVE_AI_API_KEY: env.GOOGLE_GENERATIVE_AI_API_KEY,
+    GEMINI_MODEL: env.GEMINI_MODEL,
   }
 }
 
@@ -72,14 +98,24 @@ function middleware(
       res.end(JSON.stringify({ error: 'Not found' }))
       return
     }
+    // A visitor who closes the tab aborts the answer (and the model call).
+    const closed = new AbortController()
+    res.on('close', () => {
+      if (!res.writableFinished) closed.abort()
+    })
     load()
-      .then(async (handler) => send(res, await handler(await toRequest(req))))
+      .then(async (handler) =>
+        send(res, await handler(await toRequest(req, closed.signal))),
+      )
       .catch(next)
   }
 }
 
 /** Node request → Web Request (the body is small JSON, so it's buffered). */
-async function toRequest(req: IncomingMessage): Promise<Request> {
+async function toRequest(
+  req: IncomingMessage,
+  signal: AbortSignal,
+): Promise<Request> {
   const headers = new Headers()
   for (const [name, value] of Object.entries(req.headers)) {
     if (Array.isArray(value)) {
@@ -95,12 +131,20 @@ async function toRequest(req: IncomingMessage): Promise<Request> {
     method: req.method,
     headers,
     body: hasBody ? Buffer.concat(chunks) : undefined,
+    signal,
   })
 }
 
-/** Web Response → Node response. */
+/** Web Response → Node response, streamed chunk by chunk (answers are SSE). */
 async function send(res: ServerResponse, response: Response): Promise<void> {
   res.statusCode = response.status
   response.headers.forEach((value, name) => res.setHeader(name, value))
-  res.end(Buffer.from(await response.arrayBuffer()))
+  res.flushHeaders()
+  if (response.body) {
+    for await (const chunk of response.body) {
+      if (res.destroyed) break
+      res.write(chunk)
+    }
+  }
+  res.end()
 }
