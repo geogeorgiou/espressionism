@@ -414,6 +414,8 @@ body += arrow([
 body += label(216, 578, 'WEBMCP')
 
 // Fonts, subset to the characters used and embedded so the SVG renders the same inside <img>.
+// Google's `text=` subsetting is deliberate here: this is a docs tool, separate from the
+// app, whose fonts are self-hosted (see packages/client/src/styles.css).
 const UA =
   'Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36'
 async function faces(family, query) {

@@ -1,6 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Silkscreen&family=Karla:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import '@fontsource/silkscreen/latin-400.css';
+
+/*
+ * Fonts are self-hosted (Fontsource), latin only, and preloaded in
+ * routes/__root.tsx. Never load them from Google: that's a render-blocking
+ * chain across two origins. The variable Karla package has no latin-only
+ * stylesheet, so its latin face is declared here.
+ */
+@font-face {
+  font-family: 'Karla';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('@fontsource-variable/karla/files/karla-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
 
 /* `dark:` follows the resolved color scheme of the active theme. */
 @custom-variant dark (&:where([data-scheme='dark'], [data-scheme='dark'] *));
@@ -293,7 +312,7 @@
 @theme inline {
   --font-sans: 'Karla', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-pixel: 'Silkscreen', 'Courier New', monospace;
-  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --font-mono: ui-monospace, Menlo, monospace;
 
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);

@@ -1,3 +1,5 @@
+import karlaUrl from '@fontsource-variable/karla/files/karla-latin-wght-normal.woff2?url'
+import silkscreenUrl from '@fontsource/silkscreen/files/silkscreen-latin-400-normal.woff2?url'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import {
   HeadContent,
@@ -33,6 +35,14 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: 'stylesheet', href: appCss },
+      // Start the font downloads from the HTML instead of after app.css.
+      ...[karlaUrl, silkscreenUrl].map((href) => ({
+        rel: 'preload',
+        as: 'font',
+        type: 'font/woff2',
+        crossOrigin: 'anonymous' as const,
+        href,
+      })),
       { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
       { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
