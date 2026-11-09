@@ -6,9 +6,10 @@
 api/
   chat.ts   — Vercel Function: POST /api/chat, a thin adapter over the agent
 packages/
-  agent/    — @espressionism/agent: Robospresso's brain (framework-free)
-  client/   — TanStack Start frontend (SPA mode)
-  store/    — @espressionism/store: the demo store's catalog + pure search
+  agent/       — @espressionism/agent: Robospresso's brain (framework-free)
+  calculator/  — @espressionism/calculator: the calculator's schema, pure cost model + fill tool
+  client/      — TanStack Start frontend (SPA mode)
+  store/       — @espressionism/store: the demo store's catalog + pure search
 ```
 
 The layout mirrors `fullstack-app-starter`. Vercel serves the client's static build and runs `api/*.ts` as functions; see [Agent](#agent-packagesagent).
@@ -48,45 +49,71 @@ Run from the repo root:
 - **Lint GitHub Actions:** `pnpm lint:actions` (zizmor with online audits; needs `brew install zizmor` and `GH_TOKEN` or `gh auth login`)
 - **Update GitHub Actions:** `pnpm actions:up` (interactive actions-up, then zizmor); `pnpm actions:outdated` only reports
 - **README diagram:** `pnpm docs:architecture` redraws `docs/assets/architecture.svg` from the app's sprites (`scripts/generate-architecture.mjs`; needs network for the fonts). Rerun it when the architecture or a sprite changes.
-- **E2E tests:** `pnpm test:e2e` (Playwright; builds the app and serves it with `vp preview` on :4173). First run: `pnpm --filter @espressionism/client exec playwright install chromium`
+- **E2E tests:** `pnpm test:e2e` (Playwright; builds the app and serves it with `vp preview` on :4173). First run: `pnpm --filter @espressionism/client exec playwright install chromium`. The specs expect the placeholder reply, but `vp preview` reads `packages/client/.env`: with a Gemini key there, the chat spec calls Gemini (and fails). Run them as `GOOGLE_GENERATIVE_AI_API_KEY= pnpm test:e2e`, as CI has no key.
 
 Single test file (from `packages/client/`):
 
 ```bash
-pnpm exec vp test run test/unit/features/calculator/utils/cost-model.test.ts
+pnpm exec vp test run test/unit/features/calculator/components/CalculatorForm.test.tsx
 ```
 
 ## Agent (`packages/agent/`)
 
-Everything behind the chat lives here, with no framework: `createChatHandler(config)` returns `(request: Request) => Promise<Response>`, so any host can serve it in a few lines. Requests are text turns; replies are an AI SDK **UI message stream** (SSE). Whether a model is configured is a **build-time flag**: `vite.config.ts` defines `__CHAT_LIVE__` (`isChatLive` in `vite/agent-api.ts`: is `GOOGLE_GENERATIVE_AI_API_KEY` set?), read as `CHAT_LIVE` in the chat's constants. The header badge shows a green "Live" or red "Offline" from it; only the boolean reaches the bundle, never the key. Change the key, then restart `pnpm dev` or rebuild. With a Gemini key it answers through `streamText` with three tools (the store search and two display tools); without one it streams the placeholder (`persona.ts`).
+Everything behind the chat lives here, with no framework: `createChatHandler(config)` returns `(request: Request) => Promise<Response>`, so any host can serve it in a few lines. A request is one question (`{ sessionId?, text, calculator? }`); the server holds the conversation. Replies are an AI SDK **UI message stream** (SSE). Whether a model is configured is a **build-time flag**: `vite.config.ts` defines `__CHAT_LIVE__` (`isChatLive` in `vite/agent-api.ts`: is `GOOGLE_GENERATIVE_AI_API_KEY` set?), read as `CHAT_LIVE` in the chat's constants. The header badge shows a green "Live" or red "Offline" from it; only the boolean reaches the bundle, never the key. Change the key, then restart `pnpm dev` or rebuild. With a Gemini key it answers through `streamText` with four tools (the store search and three display tools); without one it streams the placeholder (`persona.ts`).
 
 ```
 src/
-├── contract.ts      — Zod HTTP contract (text turns, error, display tool outputs, RobospressoMessage type)
-├── handler.ts       — createChatHandler: POST only, 32 KB cap, validation, streams the reply, no leaked errors
+├── contract.ts      — Zod HTTP contract (request, session part, error, display tool outputs, RobospressoMessage type)
+├── handler.ts       — createChatHandler: POST only, 4 KB cap, validation, sessions, records answers, no leaked errors
+├── memory.ts        — ConversationStore, createInMemoryStore (LRU + idle TTL, snapshot()), selectWindow
 ├── config.ts        — agentConfigFromEnv: key + model id → AgentConfig (no key → placeholder)
 ├── reply.ts         — createStoreReply({ model, limits }): streamText + the tools → UI message stream
-├── tools.ts         — AI SDK tools: the store's shared search, plus show_machines and show_store_link
+├── tools.ts         — AI SDK tools: the store's shared search, show_machines, show_store_link, fill_calculator (replyTools)
 ├── stream.ts        — ReplyStream, textReply, the generic error and its logging
 ├── instructions.ts  — Robospresso's system instructions, off-topic and empty replies
 ├── persona.ts       — Robospresso's placeholder reply (streamed)
 └── index.ts         — public API (re-exports the contract)
-test/unit/       — handler and reply tests (Vitest, node environment)
+test/unit/       — handler, reply, memory and window tests (Vitest, node environment)
 ```
 
 - **Model: Gemini, direct.** `@ai-sdk/google` with a Google AI Studio key; no AI Gateway. `createStoreReply` takes a model _object_ (`StoreModel` excludes strings): a bare `'creator/model'` string would route through the AI Gateway, the AI SDK's default global provider.
 - **Env is injected.** The agent never reads `process.env`. Hosts pass their env to `agentConfigFromEnv`: `api/chat.ts` passes `process.env`, the Vite plugin passes `loadEnv(mode, envDir, '')`. Variables: `GOOGLE_GENERATIVE_AI_API_KEY` (a Vercel **Secret**; locally `packages/client/.env`, see `.env.example`) and optional `GEMINI_MODEL` (default `DEFAULT_GEMINI_MODEL`). Never give them a `VITE_` prefix.
-- **Display tools (generative UI).** The model chooses _what_ to show, the client owns _how_. `show_machines({ slugs })` and `show_store_link(filters)` return catalog data (`{ ok: true, … }`) or `{ ok: false, errors }` for unknown slugs and bad filters, so the model can retry; their output schemas live in `contract.ts` and the client parses them before drawing. A new kind of card = a display tool here (flat, `.strict()` input), its output schema in the contract, a view in the client's `toPartView` and a renderer in `MessageParts`. Display tools are for Robospresso only, never WebMCP.
-- **History is text only.** `chatTurnSchema` strips everything but `role` and `text`, so tool parts (and forged tool outputs) never reach the model; it searches again when it needs facts. The client adds `[Cards shown: <slugs>]` to an assistant turn so follow-ups can refer to them.
+- **Display tools (generative UI).** The model chooses _what_ to show, the client owns _how_. `show_machines({ slugs })` and `show_store_link(filters)` return catalog data (`{ ok: true, … }`) or `{ ok: false, errors }` for unknown slugs and bad filters, so the model can retry; their output schemas live in `contract.ts` and the client parses them before drawing. `fill_calculator(fields)` runs the shared `runCalculatorFill` on the values the page sent (`ReplyOptions.calculator`, else `DEFAULT_INPUTS`), so it's built per answer (`replyTools`); the browser applies each successful output to the form once per `toolCallId`. Input that breaks a tool's schema never reaches `execute`: the AI SDK hands the model an `error-text` result instead. A new kind of card = a display tool here (flat, `.strict()` input), its output schema in the contract, a view in the client's `toPartView` and a renderer in `MessageParts`. Display tools are for Robospresso only, never WebMCP.
+- **Memory (server-held sessions).** The handler owns the conversation; the client sends only the new question plus the session id it read from the last reply.
+  - Every reply opens with a **transient** `data-session { id, restarted }` part (reaches `useChat`'s `onData`, never `message.parts`). An unknown or expired id starts a new session with `restarted: true` (logged as `chat: session restarted`, no content); a malformed id is a 400; a second question while the session is answering is a 409.
+  - Turns are text only (`chatTurnSchema`). The handler records the user turn up front and the assistant turn in `createUIMessageStream`'s `onEnd`, **only on `outcome.status === 'completed'`**. Replies report failure in-band, so the handler reads the reply's chunks and declares the outcome itself (`writer.setOutcome`): `merge()` doesn't carry an outcome, and error chunks never reach `responseMessage`. The assistant turn gets server-written notes, `[Cards shown: …]` and `[Calculator filled: …]`, so follow-ups can refer back.
+  - The model reads `selectWindow(turns)`: the latest question plus older turns within 40 turns / 24,000 chars, always starting on a user turn.
+  - `createInMemoryStore` holds sessions in one instance's memory (LRU, 500 sessions, 200 turns, 30 min idle; lazy expiry, no timers). On Vercel, instances don't share it, so sessions get lost now and then: by design, the chat shows a start-fresh note. `ConversationStore` is the seam for a shared backend.
 - **Limits.** Every answer runs under `DEFAULT_LIMITS` (4 steps, output tokens, total timeout) with one retry. Errors before the stream starts are a JSON 500; errors during it are a generic `error` chunk. Either way the reason goes to the server log as `name: message` only. An answer with no text and no cards gets `EMPTY_REPLY`.
 - **Tests never call Google.** Drive `createStoreReply` with `MockLanguageModelV4` from `ai/test` (`doStream` with `convertArrayToReadableStream`): script the tool calls and text, collect the UI chunks, then assert on them and on `doStreamCalls` (prompt, tools, tool results). `test/unit/sse.ts` reads chunks from a response or stream.
 
 - **Two entry points.** `@espressionism/agent` is the server runtime: `exports.default` points at the bundle `vp pack` writes to `dist/index.mjs` (types come from `src`). `@espressionism/agent/contract` is TypeScript source with no server code, safe to import in the browser; the client validates replies with it.
 - **Hosts.** On Vercel, `api/chat.ts` exports `POST` and calls the handler; the root `pnpm build` builds the agent before Vercel bundles the function, and the `vercel.json` rewrite skips `/api/`. Locally, `packages/client/vite/agent-api.ts` serves the same handler at `/api/chat`: `pnpm dev` loads the agent's source through Vite (no build needed), `vp preview` (and so the e2e tests) imports the built package. The client's `build` task depends on the agent's build for that reason.
 - **`api/` is plain Node ESM.** Vercel compiles each `api/*.ts` to `.js` without bundling, and Node loads it as ESM only because the root `package.json` has `"type": "module"`: keep it. Each function is a single file that imports only `@espressionism/agent` (plain ESM would need `.js` on relative imports, against the extensionless rule); shared code goes in the agent.
-- **One handler per process.** Create the handler once (module scope), not per request.
-- **Store data.** The contract builds on `@espressionism/store`'s `machineSchema`. The store is a **dev** dependency on purpose: `vp pack` inlines dev dependencies, so the Vercel Function never loads the store's TypeScript at runtime.
-- **Contract changes** go in `contract.ts` with a matching handler or reply test; the client sends turns with `toTurns` and parses display tool outputs with the contract's schemas.
+- **One handler per process.** Create the handler once (module scope), not per request: it holds the sessions. In `pnpm dev` the Vite plugin makes one per loaded agent module, so editing the agent resets memory, and it serves the dev-only `GET /api/chat/memory` (`store.snapshot()`: sizes in LRU order, no turn text) for the page's "Memory (dev)" section. Preview and Vercel never serve that route.
+- **Shared packages.** The contract builds on `@espressionism/store` (`machineSchema`) and `@espressionism/calculator` (`calculatorSchema`, `fillToolOutputSchema`). Both are **dev** dependencies on purpose: `vp pack` inlines dev dependencies, so the Vercel Function never loads their TypeScript at runtime.
+- **Contract changes** go in `contract.ts` with a matching handler or reply test; the client builds the body with `chatRequest` (`utils/messages.ts`) and parses display tool outputs and the session part with the contract's schemas.
+
+## Calculator (`packages/calculator/`)
+
+The break-even calculator's core, shared by the page (form, URL, WebMCP) and Robospresso. Source-only TypeScript (`exports` → `src/index.ts`), no build step, framework-free.
+
+```
+src/
+├── drinks.ts     — DRINKS, DRINK_LABELS (the mascot's MASCOT_FLAVORS is DRINKS)
+├── format.ts     — CURRENCIES, formatMoney, formatDuration
+├── schema.ts     — calculatorSchema, CalculatorValues, DEFAULT_INPUTS, agentFillSchema
+├── cost-model.ts — summarize, verdictFor, … (pure money math over CoffeeInputs)
+├── inputs.ts     — toCoffeeInputs
+├── agent-fill.ts — applyAgentFill, agentFillResult
+├── tool.ts       — fill_calculator, defined once: CALCULATOR_TOOL, fillToolInputSchema, fillToolOutputSchema, runCalculatorFill
+└── index.ts
+test/unit/        — cost model, agent fill, tool (Vitest, node environment)
+```
+
+- **Money math is pure and tested.** Every change to `cost-model.ts` needs a matching test in `test/unit/cost-model.test.ts`.
+- **Rules live here once; boundaries derive their policy.** The form shows `calculatorSchema`'s messages, the URL drops bad params (`calculatorSearchSchema` maps the shared shape with `.optional().catch(undefined)`), agents get `{ ok: false, errors }`, the server returns 400. Never restate a bound elsewhere; the client's URL test checks, field by field, that the URL accepts exactly what the shared rules accept.
+- **One tool, two adapters**, as in the store: `runCalculatorFill(current, input)` never throws and returns `{ ok: true, changes, values, summary, verdict, message }` or `{ ok: false, errors }`. The agent's tool (`tools.ts`) and the page's WebMCP tool only adapt it.
 
 ## Store (`packages/store/`)
 
@@ -121,15 +148,15 @@ src/
 ├── features/
 │   ├── calculator/
 │   │   ├── components/  — CalculatorForm, VerdictPanel, StatsGrid, *Chart
-│   │   ├── constants/   — defaults, Zod schemas (form + URL search + agent fill)
+│   │   ├── constants/   — re-exports the package's schema; URL search schema derived from it; WebMCP input schema
 │   │   ├── hooks/       — useCalculatorTool (WebMCP `fill_calculator`)
-│   │   ├── pages/       — CalculatorPage
-│   │   └── utils/       — cost-model (pure), agent-fill, format, form-options, inputs
+│   │   ├── pages/       — CalculatorPage (also hands ChatPanel the calculator handle)
+│   │   └── utils/       — format (chart ticks, symbols; re-exports money/duration), form-options
 │   ├── chat/
-│   │   ├── components/  — ChatPanel ("Ask Robospresso"), ChatLog, MessageParts (renderer registry), ChatComposer
-│   │   ├── constants/   — Zod composer schema, greeting, suggestions, error reply
-│   │   ├── hooks/       — useChat (@ai-sdk/react's useChat: messages, busy, searching, failed, send)
-│   │   └── utils/       — messages (transport → POST /api/chat, toTurns), parts (toPartView, isSearching)
+│   │   ├── components/  — ChatPanel ("Ask Robospresso", New chat), ChatLog, MessageParts (renderer registry), ChatComposer, MemoryOverview (dev)
+│   │   ├── constants/   — Zod composer schema, greeting, suggestions, restarted note, error reply
+│   │   ├── hooks/       — useChat (session id, restartedAt, calculator fills, send, reset), useMemorySnapshot (dev)
+│   │   └── utils/       — messages (transport → POST /api/chat, chatRequest), parts (toPartView, isSearching)
 │   ├── store/
 │   │   ├── components/  — StoreFilters, MachineCard, MachineRating, MachineSprite
 │   │   ├── constants/   — Zod schemas (filter form + URL search), sort/rating options, disclaimer, WebMCP input schema
@@ -161,7 +188,7 @@ Route files (`src/routes/*.tsx`) contain **only** `createFileRoute` with `valida
 
 ### Business logic stays pure
 
-All money math lives in `features/calculator/utils/cost-model.ts` as pure functions over `CoffeeInputs`. Components never compute costs themselves. Every change there needs a matching test in `test/unit/features/calculator/utils/cost-model.test.ts`.
+All money math lives in `@espressionism/calculator` (see [Calculator](#calculator-packagescalculator)). Components never compute costs themselves.
 
 ### Styling
 
@@ -196,7 +223,7 @@ The page offers tools to in-browser AI agents through [WebMCP](https://webmachin
 - `execute` is read through a ref, but `inputSchema` and `annotations` are the tool's identity: keep them module constants, or the tool re-registers every render.
 - Derive `inputSchema` from Zod with `z.toJSONSchema`. Put agent-facing descriptions on the schema with `.meta({ description })` as the **last** call in each chain, and prefer checks that map to JSON Schema (`.gt`, `.int`, `.max`) over `.refine`, which `toJSONSchema` drops.
 - `search_espresso_machines` (`store/hooks/use-store-search-tool.ts`, mounted by `StorePage`) registers the store's shared tool with `SEARCH_TOOL_INPUT_SCHEMA` (`z.toJSONSchema` of `searchToolInputSchema`). A valid search replaces every filter on the form (`agentSearchToForm`; a rating between the select's steps shows the next one down) so the URL sync runs, and returns the result; invalid input changes nothing and returns the errors.
-- `fill_calculator` (`calculator/hooks/use-calculator-tool.ts`) validates with the pure `applyAgentFill` (any subset of fields, merged onto the form values), sets each sent field with `form.setFieldValue` so validation and the URL sync run as if typed, and returns `agentFillResult` (values, summary, verdict, message) or `{ ok: false, errors }`. A successful call makes the verdict mascots hop and shows "Filled by your agent". `useCalculatorTool` returns the tool's status.
+- `fill_calculator` (`calculator/hooks/use-calculator-tool.ts`) adapts the package's `runCalculatorFill` (any subset of fields, merged onto the form values), sets each changed field with `form.setFieldValue` so validation and the URL sync run as if typed, and returns the result (values, summary, verdict, message; `changes` stripped) or `{ ok: false, errors }`. Robospresso's fills go through the same path (`CalculatorPage`'s handle). A successful call makes the verdict mascots hop and shows "Filled by your agent". `useCalculatorTool` returns the tool's status.
 - Unit tests stub `document.modelContext` with `stubModelContext` from `test/unit/features/webmcp/model-context.ts` (spec-like: duplicate names reject; restore it in `finally`/`afterEach`, and reset the store with `resetWebMcpStore`). Playwright's Chromium has no WebMCP, so `test/e2e/webmcp.spec.ts` stubs it with `addInitScript` and calls the captured tool's `execute`.
 
 ### Charts: react-charts (TanStack Charts)
@@ -240,7 +267,7 @@ Named exports only (`export function Foo`), enforced by `import/no-default-expor
 Tests mirror `src/features/` exactly:
 
 ```
-test/unit/features/calculator/utils/cost-model.test.ts
+test/unit/features/calculator/constants/index.test.ts
 test/unit/features/calculator/components/CalculatorForm.test.tsx
 test/unit/features/mascot/utils/sprite.test.ts
 ```
