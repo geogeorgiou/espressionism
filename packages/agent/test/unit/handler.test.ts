@@ -1,3 +1,4 @@
+import { DEFAULT_INPUTS, runCalculatorFill } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import { createUIMessageStream } from 'ai'
 import type { UIMessageChunk } from 'ai'
@@ -149,6 +150,46 @@ describe('createChatHandler', () => {
     })
   })
 
+  it('hands the calculator as the page shows it to the reply', async () => {
+    let seen: unknown
+    const handler = createChatHandler({
+      reply: (_turns, options) => {
+        seen = options?.calculator
+        return textReply('Ok.')
+      },
+    })
+    const calculator = { ...DEFAULT_INPUTS, cupsPerDay: 3 }
+    await readChunks(await handler(post({ ...question, calculator })))
+    expect(seen).toEqual(calculator)
+  })
+
+  it('remembers what it filled in the calculator', async () => {
+    const store = createInMemoryStore()
+    const output = runCalculatorFill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    const handler = createChatHandler({
+      store,
+      reply: () =>
+        chunkReply([
+          { type: 'start' },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'call-1',
+            toolName: 'fill_calculator',
+            input: { cupsPerDay: 2 },
+          },
+          { type: 'tool-output-available', toolCallId: 'call-1', output },
+          { type: 'text-start', id: 't' },
+          { type: 'text-delta', id: 't', delta: 'Done.' },
+          { type: 'text-end', id: 't' },
+          { type: 'finish' },
+        ]),
+    })
+    const session = sessionOf(await readChunks(await handler(post(question))))
+    expect(store.get(session.id)?.at(-1)?.text).toMatch(
+      /^Done\.\n\[Calculator filled: cupsPerDay=2 → fast, break-even \d+ months?\]$/,
+    )
+  })
+
   it.each([
     ['errors', { type: 'error', errorText: 'Robospresso could not answer' }],
     ['aborts', { type: 'abort' }],
@@ -273,6 +314,10 @@ describe('createChatHandler', () => {
     ['a blank question', { text: '   ' }],
     ['a question over the length limit', { text: 'x'.repeat(281) }],
     ['a malformed session id', { sessionId: 'not-a-uuid', text: 'Hi' }],
+    [
+      'a calculator with a bad field',
+      { text: 'Hi', calculator: { ...DEFAULT_INPUTS, cupsPerDay: 0 } },
+    ],
     [
       'a whole conversation (the old shape)',
       { messages: [{ role: 'user', text: 'Hi' }] },

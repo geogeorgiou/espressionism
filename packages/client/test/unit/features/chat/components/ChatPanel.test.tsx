@@ -1,4 +1,5 @@
 import type { ChatRequest } from '@espressionism/agent/contract'
+import { DEFAULT_INPUTS, runCalculatorFill } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import {
   RouterProvider,
@@ -9,7 +10,7 @@ import {
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { UIMessageChunk } from 'ai'
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 
 import { ChatPanel } from '@/features/chat/components/ChatPanel'
 import {
@@ -17,12 +18,19 @@ import {
   CHAT_GREETING,
   CHAT_RESTARTED_NOTE,
 } from '@/features/chat/constants'
+import type { CalculatorHandle } from '@/features/chat/hooks/use-chat'
 import type { RobospressoTransport } from '@/features/chat/utils/messages'
 import { chatRequest } from '@/features/chat/utils/messages'
 
-function renderChat(transport: RobospressoTransport, live = true) {
+function renderChat(
+  transport: RobospressoTransport,
+  live = true,
+  calculator?: CalculatorHandle,
+) {
   const rootRoute = createRootRoute({
-    component: () => <ChatPanel transport={transport} live={live} />,
+    component: () => (
+      <ChatPanel transport={transport} live={live} calculator={calculator} />
+    ),
   })
   const router = createRouter({
     routeTree: rootRoute,
@@ -382,6 +390,83 @@ describe('ChatPanel', () => {
     expect(
       screen.getByRole('list', { name: 'Recommended machines' }),
     ).toBeTruthy()
+  })
+
+  it('sends the calculator as the page shows it', async () => {
+    const user = userEvent.setup()
+    const agent = fakeAgent(text('Ok.'))
+    const values = { ...DEFAULT_INPUTS, cupsPerDay: 3 }
+    renderChat(agent.transport, true, {
+      getValues: () => values,
+      apply: vi.fn(),
+    })
+
+    await user.type(await screen.findByLabelText('Your question'), 'Hi{Enter}')
+
+    await waitFor(() => expect(agent.calls).toHaveLength(1))
+    expect(agent.calls[0]).toEqual({ text: 'Hi', calculator: values })
+  })
+
+  it('fills the calculator once and shows what it found', async () => {
+    const user = userEvent.setup()
+    const fill = runCalculatorFill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    const apply = vi.fn()
+    renderChat(
+      fakeAgent(
+        [
+          ...tool('f1', 'fill_calculator', { cupsPerDay: 2 }, fill),
+          ...text('Pays off fast.'),
+        ],
+        text('Anything else?'),
+      ).transport,
+      true,
+      { getValues: () => DEFAULT_INPUTS, apply },
+    )
+    const input = await screen.findByLabelText('Your question')
+
+    await user.type(input, 'Two a day?{Enter}')
+    const card = await screen.findByRole('region', {
+      name: 'Calculator updated',
+    })
+    expect(card.textContent).toContain(fill.ok ? fill.message : '')
+    const link = within(card).getByRole('link', { name: 'See the charts' })
+    expect(link.getAttribute('href')).toBe('#charts')
+    expect(apply).toHaveBeenCalledTimes(1)
+    expect(apply).toHaveBeenCalledWith(fill)
+
+    // Later renders (a new answer streaming in) never apply it again.
+    await user.type(input, 'More?{Enter}')
+    await waitFor(async () =>
+      expect(await lastItem()).toBe('Robospresso: Anything else?'),
+    )
+    expect(apply).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves the calculator alone when the fill failed', async () => {
+    const user = userEvent.setup()
+    const apply = vi.fn()
+    renderChat(
+      fakeAgent([
+        ...tool(
+          'f1',
+          'fill_calculator',
+          { cupsPerDay: 99 },
+          { ok: false, errors: [{ field: 'cupsPerDay', message: 'Too many' }] },
+        ),
+        ...text('Ten at most.'),
+      ]).transport,
+      true,
+      { getValues: () => DEFAULT_INPUTS, apply },
+    )
+
+    await user.type(await screen.findByLabelText('Your question'), 'Hi{Enter}')
+    await waitFor(async () =>
+      expect(await lastItem()).toBe('Robospresso: Ten at most.'),
+    )
+    expect(apply).not.toHaveBeenCalled()
+    expect(screen.queryByRole('region', { name: 'Calculator updated' })).toBe(
+      null,
+    )
   })
 
   it('ignores a blank question', async () => {

@@ -1,6 +1,7 @@
 import { Robospresso } from '@/features/mascot/components/Robospresso'
 
 import { CHAT_LIVE, CHAT_STATUS_COPY } from '../constants'
+import type { CalculatorHandle } from '../hooks/use-chat'
 import { useChat } from '../hooks/use-chat'
 import type { RobospressoTransport } from '../utils/messages'
 import { ChatComposer } from './ChatComposer'
@@ -12,6 +13,8 @@ interface ChatPanelProps {
   transport?: RobospressoTransport
   /** Whether a model is configured; defaults to this build's flag. */
   live?: boolean
+  /** The page's calculator, for Robospresso's `fill_calculator`. */
+  calculator?: CalculatorHandle
 }
 
 /**
@@ -20,9 +23,13 @@ interface ChatPanelProps {
  * Answers stream from `@espressionism/agent` at `/api/chat`: text, plus
  * product cards and a store link drawn from the agent's display tools.
  */
-export function ChatPanel({ transport, live = CHAT_LIVE }: ChatPanelProps) {
+export function ChatPanel({
+  transport,
+  live = CHAT_LIVE,
+  calculator,
+}: ChatPanelProps) {
   const { messages, busy, searching, failed, restartedAt, send, reset } =
-    useChat({ transport })
+    useChat({ transport, calculator })
   const started = messages.some((m) => m.role === 'user')
 
   return (

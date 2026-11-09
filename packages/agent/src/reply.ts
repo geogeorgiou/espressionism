@@ -1,3 +1,4 @@
+import { DEFAULT_INPUTS } from '@espressionism/calculator'
 import { createUIMessageStream, isStepCount, streamText } from 'ai'
 import type { LanguageModel } from 'ai'
 
@@ -6,7 +7,7 @@ import { DISPLAY_TOOLS } from './contract'
 import type { ReplyFn } from './handler'
 import { EMPTY_REPLY, INSTRUCTIONS } from './instructions'
 import { GENERIC_ERROR, logError, writeText } from './stream'
-import { STORE_TOOLS } from './tools'
+import { replyTools } from './tools'
 
 /**
  * A model object, never a bare `'creator/model'` string: the AI SDK routes
@@ -48,7 +49,7 @@ export function createStoreReply({ model, limits }: StoreReplyConfig): ReplyFn {
     ...DEFAULT_LIMITS,
     ...limits,
   }
-  return (turns, { signal } = {}) =>
+  return (turns, { signal, calculator = DEFAULT_INPUTS } = {}) =>
     createUIMessageStream({
       onError: (error) => {
         logError(error)
@@ -59,7 +60,7 @@ export function createStoreReply({ model, limits }: StoreReplyConfig): ReplyFn {
           model,
           instructions: INSTRUCTIONS,
           messages: turns.map(toModelMessage),
-          tools: STORE_TOOLS,
+          tools: replyTools(calculator),
           stopWhen: isStepCount(maxSteps),
           maxOutputTokens,
           timeout: { totalMs: timeoutMs },

@@ -61,6 +61,21 @@ const RENDERERS: Renderers = {
       <span className="sr-only"> (opens in new tab)</span>
     </Link>
   ),
+  calculator: ({ message }) => (
+    <section
+      aria-label="Calculator updated"
+      className="flex flex-col gap-2 rounded-lg border-2 border-foreground bg-card p-3 shadow-pixel"
+    >
+      <p className="font-pixel text-sm">Calculator updated</p>
+      <p className="text-base">{message}</p>
+      <a
+        href="#charts"
+        className="flex min-h-11 w-full items-center justify-center rounded-md border-2 border-foreground px-3 py-2 font-pixel text-sm text-foreground no-underline hover:text-primary sm:w-fit"
+      >
+        See the charts
+      </a>
+    </section>
+  ),
 }
 
 function renderView(view: PartView): ReactNode {
@@ -68,7 +83,7 @@ function renderView(view: PartView): ReactNode {
   return render(view)
 }
 
-/** Robospresso's message, part by part: text bubbles, cards, links. */
+/** Robospresso's message, part by part: text bubbles, cards, links, the calculator. */
 export function MessageParts({ message }: { message: RobospressoMessage }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-2">

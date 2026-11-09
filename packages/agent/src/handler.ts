@@ -1,3 +1,5 @@
+import type { CalculatorValues } from '@espressionism/calculator'
+import { formatDuration } from '@espressionism/calculator'
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -12,6 +14,7 @@ import {
   MAX_BODY_BYTES,
   chatRequestSchema,
   chatTurnSchema,
+  fillCalculatorOutputSchema,
   showMachinesOutputSchema,
 } from './contract'
 import type { ConversationStore } from './memory'
@@ -23,6 +26,8 @@ import { GENERIC_ERROR, logError } from './stream'
 export interface ReplyOptions {
   /** Aborts the answer when the visitor leaves or stops it. */
   signal?: AbortSignal
+  /** The calculator's values as the page shows them, if it sent them. */
+  calculator?: CalculatorValues
 }
 
 /** Streams Robospresso's next message from the window of the session. */
@@ -87,7 +92,7 @@ export function createChatHandler({
     if (!parsed.success) {
       return json({ error: 'Invalid chat request' }, 400)
     }
-    const { sessionId, text } = parsed.data
+    const { sessionId, text, calculator } = parsed.data
 
     const session = openSession(store, sessionId)
     if (answering.has(session.id)) {
@@ -98,7 +103,7 @@ export function createChatHandler({
 
     answering.add(session.id)
     try {
-      const answer = reply(window, { signal: request.signal })
+      const answer = reply(window, { signal: request.signal, calculator })
       const stream = createUIMessageStream({
         execute: async ({ writer }) => {
           writer.write({ type: 'data-session', data: session, transient: true })
@@ -143,30 +148,36 @@ function openSession(
 }
 
 /**
- * What Robospresso said, as a turn: its text plus a note of the cards it
- * showed, so "the second one" still means something next time.
+ * What Robospresso said, as a turn: its text plus notes of what its display
+ * tools did (the cards it showed, the calculator it filled), so "the second
+ * one" or "and with 3 cups?" still means something next time.
  */
 function assistantTurn(message: UIMessage): ChatTurn | undefined {
   const said = message.parts
     .map((part) => (part.type === 'text' ? part.text : ''))
     .join('')
     .trim()
-  const slugs = message.parts.flatMap((part) => {
-    if (
-      !isToolUIPart(part) ||
-      getToolName(part) !== DISPLAY_TOOLS.showMachines ||
-      part.state !== 'output-available'
-    ) {
-      return []
+  const slugs: string[] = []
+  const fills: string[] = []
+  for (const part of message.parts) {
+    if (!isToolUIPart(part) || part.state !== 'output-available') continue
+    const name = getToolName(part)
+    if (name === DISPLAY_TOOLS.showMachines) {
+      const output = showMachinesOutputSchema.safeParse(part.output)
+      if (output.success && output.data.ok) {
+        slugs.push(...output.data.items.map((machine) => machine.slug))
+      }
     }
-    const output = showMachinesOutputSchema.safeParse(part.output)
-    return output.success && output.data.ok
-      ? output.data.items.map((machine) => machine.slug)
-      : []
-  })
+    if (name === DISPLAY_TOOLS.fillCalculator) {
+      const output = fillCalculatorOutputSchema.safeParse(part.output)
+      if (output.success && output.data.ok)
+        fills.push(calculatorNote(output.data))
+    }
+  }
   const text = [
     said,
     slugs.length > 0 ? `[Cards shown: ${slugs.join(', ')}]` : '',
+    ...fills,
   ]
     .filter(Boolean)
     .join('\n')
@@ -175,6 +186,26 @@ function assistantTurn(message: UIMessage): ChatTurn | undefined {
     text: text.slice(0, MAX_TURN_LENGTH),
   })
   return turn.success ? turn.data : undefined
+}
+
+/** `[Calculator filled: cupsPerDay=2 → fast, break-even 4 months]` */
+function calculatorNote({
+  changes,
+  verdict,
+  summary,
+}: {
+  changes: Record<string, unknown>
+  verdict: string
+  summary: { breakEvenMonths: number | null }
+}): string {
+  const fields = Object.entries(changes)
+    .map(([field, value]) => `${field}=${String(value)}`)
+    .join(', ')
+  const breakEven =
+    summary.breakEvenMonths === null
+      ? 'never breaks even'
+      : `break-even ${formatDuration(summary.breakEvenMonths)}`
+  return `[Calculator filled: ${fields || 'no changes'} → ${verdict}, ${breakEven}]`
 }
 
 function json(

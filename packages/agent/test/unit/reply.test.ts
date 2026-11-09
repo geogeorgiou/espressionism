@@ -1,3 +1,5 @@
+import { DEFAULT_INPUTS } from '@espressionism/calculator'
+import type { CalculatorValues } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import type { UIMessageChunk } from 'ai'
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test'
@@ -94,9 +96,12 @@ function outputs(chunks: UIMessageChunk[]): Record<string, unknown> {
 async function run(
   doStream: StreamResult[],
   limits?: Parameters<typeof createStoreReply>[0]['limits'],
+  calculator?: CalculatorValues,
 ) {
   const model = new MockLanguageModelV4({ doStream })
-  const chunks = await collect(createStoreReply({ model, limits })(question))
+  const chunks = await collect(
+    createStoreReply({ model, limits })(question, { calculator }),
+  )
   return { model, chunks }
 }
 
@@ -125,6 +130,46 @@ describe('createStoreReply', () => {
     expect(chunks.at(-1)?.type).toBe('finish')
   })
 
+  it('fills the calculator on top of what the page shows', async () => {
+    const page = { ...DEFAULT_INPUTS, currency: 'GBP' as const, years: 3 }
+    const { chunks } = await run(
+      [
+        tools(call('fill_calculator', { cupsPerDay: 2, machinePrice: 450 })),
+        answer('Pays off fast.'),
+      ],
+      undefined,
+      page,
+    )
+    expect(textOf(chunks)).toBe('Pays off fast.')
+    expect(outputs(chunks).fill_calculator).toMatchObject({
+      ok: true,
+      changes: { cupsPerDay: 2, machinePrice: 450 },
+      values: { ...page, cupsPerDay: 2, machinePrice: 450 },
+      verdict: 'fast',
+    })
+  })
+
+  it('hands bad calculator fields back to the model as errors', async () => {
+    const { model } = await run([
+      tools(call('fill_calculator', { cupsPerDay: 0 })),
+      answer('One cup at least.'),
+    ])
+    // The SDK checks the input schema before the tool runs, and tells the
+    // model which rule failed.
+    const results = (model.doStreamCalls[1]?.prompt ?? [])
+      .filter((message) => message.role === 'tool')
+      .flatMap((message) => message.content)
+    expect(results).toEqual([
+      expect.objectContaining({
+        toolName: 'fill_calculator',
+        output: {
+          type: 'error-text',
+          value: expect.stringContaining('At least one cup'),
+        },
+      }),
+    ])
+  })
+
   it('answers from the search result', async () => {
     const { model } = await run([search({ maxPrice: 300 }), answer('Picks.')])
     const [value] = toolResults(model) as [
@@ -135,10 +180,11 @@ describe('createStoreReply', () => {
     expect(value.items.every((m) => m.price <= 300)).toBe(true)
   })
 
-  it('offers the search and the two display tools', async () => {
+  it('offers the search, the two display tools and the calculator', async () => {
     const { model } = await run([answer('Hi!')])
     const offered = model.doStreamCalls[0]?.tools ?? []
     expect(offered.map((t) => t.name).toSorted()).toEqual([
+      'fill_calculator',
       'search_espresso_machines',
       'show_machines',
       'show_store_link',
@@ -158,6 +204,17 @@ describe('createStoreReply', () => {
       'sort',
     ])
     expect(keys('show_machines')).toEqual(['slugs'])
+    expect(keys('fill_calculator')).toEqual([
+      'cafePrice',
+      'cupsPerDay',
+      'currency',
+      'daysPerWeek',
+      'drink',
+      'homeCostPerCup',
+      'machinePrice',
+      'yearlyMaintenance',
+      'years',
+    ])
     expect(keys('show_store_link')).toEqual([
       'maxPrice',
       'minPrice',

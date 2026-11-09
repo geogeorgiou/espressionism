@@ -1,4 +1,10 @@
 import {
+  CALCULATOR_TOOL,
+  fillToolInputSchema,
+  runCalculatorFill,
+} from '@espressionism/calculator'
+import type { CalculatorValues } from '@espressionism/calculator'
+import {
   SEARCH_TOOL,
   findMachine,
   runStoreSearch,
@@ -90,4 +96,27 @@ export const STORE_TOOLS = {
   [SEARCH_TOOL.name]: storeSearchTool,
   [DISPLAY_TOOLS.showMachines]: showMachinesTool,
   [DISPLAY_TOOLS.showStoreLink]: showStoreLinkTool,
+}
+
+/**
+ * Fills the page's calculator. The definition and the math come from
+ * `@espressionism/calculator` (the WebMCP tool on the page uses the same);
+ * it merges onto the values the page sent with the question, and the
+ * browser applies the result to the form.
+ */
+export function calculatorTool(current: CalculatorValues) {
+  return tool({
+    title: CALCULATOR_TOOL.title,
+    description: CALCULATOR_TOOL.description,
+    inputSchema: fillToolInputSchema,
+    execute: (input) => runCalculatorFill(current, input),
+  })
+}
+
+/** Every tool for one answer: the store's, plus the calculator as the page has it. */
+export function replyTools(current: CalculatorValues) {
+  return {
+    ...STORE_TOOLS,
+    [DISPLAY_TOOLS.fillCalculator]: calculatorTool(current),
+  }
 }
