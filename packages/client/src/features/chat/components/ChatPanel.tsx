@@ -21,7 +21,9 @@ interface ChatPanelProps {
  * product cards and a store link drawn from the agent's display tools.
  */
 export function ChatPanel({ transport, live = CHAT_LIVE }: ChatPanelProps) {
-  const { messages, busy, searching, failed, send } = useChat({ transport })
+  const { messages, busy, searching, failed, restartedAt, send, reset } =
+    useChat({ transport })
+  const started = messages.some((m) => m.role === 'user')
 
   return (
     <section
@@ -45,16 +47,25 @@ export function ChatPanel({ transport, live = CHAT_LIVE }: ChatPanelProps) {
           </p>
         </div>
         {/* Own row on phones (no room beside the title), right-aligned from sm. */}
-        <div className="flex basis-full sm:ml-auto sm:basis-auto">
+        <div className="flex basis-full items-center justify-between gap-3 sm:ml-auto sm:basis-auto sm:justify-end">
           <ChatStatusBadge live={live} />
+          <button
+            type="button"
+            onClick={reset}
+            disabled={busy || !started}
+            className="h-11 shrink-0 rounded-md border-2 border-screen-foreground px-3 font-pixel text-xs hover:bg-screen-foreground hover:text-screen disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            New chat
+          </button>
         </div>
       </header>
-      <ChatLog messages={messages} searching={searching} failed={failed} />
-      <ChatComposer
-        onSend={send}
-        busy={busy}
-        showSuggestions={!messages.some((m) => m.role === 'user')}
+      <ChatLog
+        messages={messages}
+        searching={searching}
+        failed={failed}
+        restartedAt={restartedAt}
       />
+      <ChatComposer onSend={send} busy={busy} showSuggestions={!started} />
     </section>
   )
 }
