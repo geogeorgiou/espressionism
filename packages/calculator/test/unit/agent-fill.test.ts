@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import { DEFAULT_INPUTS } from '@/features/calculator/constants'
-import {
-  agentFillResult,
-  applyAgentFill,
-} from '@/features/calculator/utils/agent-fill'
+import { agentFillResult, applyAgentFill } from '../../src/agent-fill'
+import { DEFAULT_INPUTS } from '../../src/schema'
 
 describe('applyAgentFill', () => {
   it('merges a partial fill onto the current values', () => {

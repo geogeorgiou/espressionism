@@ -1,3 +1,8 @@
+import {
+  summarize,
+  verdictFor,
+  toCoffeeInputs,
+} from '@espressionism/calculator'
 import { useSelector } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 
@@ -19,9 +24,7 @@ import {
   CALCULATOR_TOOL_NAME,
   useCalculatorTool,
 } from '../hooks/use-calculator-tool'
-import { summarize, verdictFor } from '../utils/cost-model'
 import { calculatorFormOptions } from '../utils/form-options'
-import { toCoffeeInputs } from '../utils/inputs'
 
 export function CalculatorPage() {
   const search = Route.useSearch()

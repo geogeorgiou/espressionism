@@ -16,6 +16,8 @@
  *   E eyes · P cheeks · M mouth · R tongue · V steam · T sweat
  */
 
+import { DRINKS } from '@espressionism/calculator'
+
 export const GRID_SIZE = 20
 
 export const MASCOT_FORMS = ['mug', 'togo'] as const
@@ -27,13 +29,8 @@ export const MASCOT_MOODS = [
   'wink',
   'scared',
 ] as const
-export const MASCOT_FLAVORS = [
-  'house',
-  'latte',
-  'mocha',
-  'matcha',
-  'cherry',
-] as const
+/** One flavor per café drink the calculator knows (`DRINKS`). */
+export const MASCOT_FLAVORS = DRINKS
 
 export type MascotForm = (typeof MASCOT_FORMS)[number]
 export type MascotMood = (typeof MASCOT_MOODS)[number]

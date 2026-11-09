@@ -1,10 +1,10 @@
+import type { CoffeeSummary, Verdict } from '@espressionism/calculator'
 import { clsx } from 'clsx'
 
 import { Bitspresso } from '@/features/mascot/components/Bitspresso'
 import type { MascotFlavor, MascotMood } from '@/features/mascot/utils/sprite'
 import { captionInset } from '@/features/mascot/utils/sprite'
 
-import type { CoffeeSummary, Verdict } from '../utils/cost-model'
 import type { Currency } from '../utils/format'
 import { formatDuration, formatMoney } from '../utils/format'
 

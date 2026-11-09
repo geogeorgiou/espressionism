@@ -14,6 +14,7 @@
   "dependencies": {
     "@ai-sdk/react": "catalog:",
     "@espressionism/agent": "workspace:*",
+    "@espressionism/calculator": "workspace:*",
     "@espressionism/store": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "0.10.2",
