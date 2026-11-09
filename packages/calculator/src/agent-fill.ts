@@ -1,9 +1,9 @@
-import type { CalculatorValues } from '../constants'
-import { agentFillSchema, calculatorSchema } from '../constants'
 import type { CoffeeSummary, Verdict } from './cost-model'
 import { summarize, verdictFor } from './cost-model'
 import { formatDuration, formatMoney } from './format'
 import { toCoffeeInputs } from './inputs'
+import type { CalculatorValues } from './schema'
+import { agentFillSchema, calculatorSchema } from './schema'
 
 export interface AgentFillError {
   /** Field name, or "input" when the problem isn't tied to one field. */

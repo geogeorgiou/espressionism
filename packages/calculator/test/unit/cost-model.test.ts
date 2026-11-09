@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import type { CoffeeInputs } from '@/features/calculator/utils/cost-model'
+import type { CoffeeInputs } from '../../src/cost-model'
 import {
   costPerCupOverTime,
   cumulativeCosts,
   summarize,
   verdictFor,
   yearlySpend,
-} from '@/features/calculator/utils/cost-model'
+} from '../../src/cost-model'
 
 const base: CoffeeInputs = {
   cafePrice: 4,

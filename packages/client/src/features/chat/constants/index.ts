@@ -26,6 +26,10 @@ export const CHAT_SUGGESTIONS = [
   'Show me the 5 cheapest',
 ] as const
 
+/** Shown above the answer when the agent had lost the conversation. */
+export const CHAT_RESTARTED_NOTE =
+  "I lost track of our earlier chat, so let's start fresh."
+
 /** Shown when the agent can't be reached or answers with an error. */
 export const CHAT_ERROR_REPLY =
   'My circuits got a little over-extracted. Give it another go in a sec?'

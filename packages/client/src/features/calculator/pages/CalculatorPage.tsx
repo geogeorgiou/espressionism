@@ -1,9 +1,18 @@
+import {
+  summarize,
+  verdictFor,
+  toCoffeeInputs,
+} from '@espressionism/calculator'
 import { useSelector } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
+import { useMemo } from 'react'
 
 import { ChatPanel } from '@/features/chat/components/ChatPanel'
+import { MemoryOverview } from '@/features/chat/components/MemoryOverview'
+import type { CalculatorHandle } from '@/features/chat/hooks/use-chat'
 import { useAppForm } from '@/features/common/form/form'
 import { useToolInvokedAt } from '@/features/webmcp/hooks/use-webmcp-tool'
+import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
 import { Route } from '@/routes/index'
 
 import { CalculatorForm } from '../components/CalculatorForm'
@@ -18,9 +27,7 @@ import {
   CALCULATOR_TOOL_NAME,
   useCalculatorTool,
 } from '../hooks/use-calculator-tool'
-import { summarize, verdictFor } from '../utils/cost-model'
 import { calculatorFormOptions } from '../utils/form-options'
-import { toCoffeeInputs } from '../utils/inputs'
 
 export function CalculatorPage() {
   const search = Route.useSearch()
@@ -50,6 +57,24 @@ export function CalculatorPage() {
     setValue: (name, value) => form.setFieldValue(name, value),
   })
   const agentFilledAt = useToolInvokedAt(CALCULATOR_TOOL_NAME)
+
+  // Robospresso reads the form with each question and fills it the same way
+  // the WebMCP tool does: field by field, then the "Filled by your agent" hop.
+  const calculator = useMemo<CalculatorHandle>(
+    () => ({
+      getValues: () => {
+        const parsed = calculatorSchema.safeParse(form.state.values)
+        return parsed.success ? parsed.data : undefined
+      },
+      apply: ({ changes, values }) => {
+        for (const name of Object.keys(changes) as (keyof CalculatorValues)[]) {
+          form.setFieldValue(name, values[name])
+        }
+        useWebMcpStore.getState().recordInvocation(CALCULATOR_TOOL_NAME)
+      },
+    }),
+    [form],
+  )
 
   // Results follow the last valid answers: while a field is half-typed or
   // invalid, fall back to what's in the URL (the last valid, synced values).
@@ -107,7 +132,8 @@ export function CalculatorPage() {
         </div>
       </div>
       <div className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
-        <ChatPanel />
+        <ChatPanel calculator={calculator} />
+        {import.meta.env.DEV && <MemoryOverview />}
       </div>
     </>
   )

@@ -6,6 +6,10 @@
  * - dev: loads the agent's TypeScript source through Vite (no build needed;
  *   edits apply on the next request).
  * - preview (and the e2e tests): imports the built package, as Vercel does.
+ *
+ * Dev only: `GET /api/chat/memory` returns the in-memory store's snapshot
+ * (session sizes in LRU order, no turn text) for the page's memory overview.
+ * Neither preview nor Vercel serves it.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fileURLToPath } from 'node:url'
@@ -26,27 +30,50 @@ const AGENT_PACKAGE = '@espressionism/agent'
 /** Routes under /api, mapped to the agent handler that serves each. */
 const ROUTES = new Set(['/api/chat'])
 
+/** Dev-only overview of Robospresso's memory. */
+export const MEMORY_ROUTE = '/api/chat/memory'
+
+interface DevAgent {
+  handler: ChatHandler
+  store: Agent.InMemoryStore
+}
+
 export function agentApi(): Plugin {
   return {
     name: 'espressionism:agent-api',
     configureServer(server) {
       const env = agentEnv(server.config.mode, server.config.envDir)
-      // One handler per loaded module: created once, and recreated when the
-      // agent source changes.
-      const handlers = new WeakMap<object, ChatHandler>()
-      server.middlewares.use(
-        middleware(async () => {
-          const agent = (await server.ssrLoadModule(
-            AGENT_SOURCE,
-          )) as typeof Agent
-          let handler = handlers.get(agent)
-          if (!handler) {
-            handler = agent.createChatHandler(agent.agentConfigFromEnv(env))
-            handlers.set(agent, handler)
+      // One handler (and its memory) per loaded module: created once, and
+      // recreated when the agent source changes.
+      const agents = new WeakMap<object, DevAgent>()
+      const load = async (): Promise<DevAgent> => {
+        const agent = (await server.ssrLoadModule(AGENT_SOURCE)) as typeof Agent
+        let loaded = agents.get(agent)
+        if (!loaded) {
+          const store = agent.createInMemoryStore()
+          loaded = {
+            store,
+            handler: agent.createChatHandler({
+              ...agent.agentConfigFromEnv(env),
+              store,
+            }),
           }
-          return handler
-        }),
-      )
+          agents.set(agent, loaded)
+        }
+        return loaded
+      }
+      server.middlewares.use((req, res, next) => {
+        const path = new URL(req.url ?? '/', 'http://localhost').pathname
+        if (path !== MEMORY_ROUTE || req.method !== 'GET') return next()
+        load()
+          .then(({ store }) => {
+            res.setHeader('Content-Type', 'application/json')
+            res.setHeader('Cache-Control', 'no-store')
+            res.end(JSON.stringify(store.snapshot()))
+          })
+          .catch(next)
+      })
+      server.middlewares.use(middleware(async () => (await load()).handler))
     },
     configurePreviewServer(server) {
       const env = agentEnv(server.config.mode, server.config.envDir)

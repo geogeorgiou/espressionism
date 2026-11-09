@@ -1,4 +1,5 @@
 import type { RobospressoMessage } from '@espressionism/agent/contract'
+import { DEFAULT_INPUTS, runCalculatorFill } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import { describe, expect, it } from 'vite-plus/test'
 
@@ -21,6 +22,17 @@ const user: RobospressoMessage = {
   id: 'u1',
   role: 'user',
   parts: [{ type: 'text', text: 'Hi' }],
+}
+
+/** A finished `fill_calculator` call with this output. */
+function fillPart(output: unknown): Part {
+  return {
+    type: 'tool-fill_calculator',
+    toolCallId: 'f1',
+    state: 'output-available',
+    input: { cupsPerDay: 2 },
+    output: output as never,
+  }
 }
 
 const search: Part = {
@@ -91,6 +103,20 @@ describe('toPartView', () => {
         errorText: 'boom',
       }),
     ).toBe(null)
+  })
+
+  it('draws the calculator card from a successful fill only', () => {
+    const fill = runCalculatorFill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    expect(toPartView(fillPart(fill))).toEqual({
+      kind: 'calculator',
+      message: fill.ok ? fill.message : '',
+    })
+    expect(
+      toPartView(
+        fillPart({ ok: false, errors: [{ field: 'x', message: 'y' }] }),
+      ),
+    ).toBe(null)
+    expect(toPartView(fillPart({ ok: true, message: 'forged' }))).toBe(null)
   })
 })
 

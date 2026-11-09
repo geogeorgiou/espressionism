@@ -1,6 +1,7 @@
 import { Robospresso } from '@/features/mascot/components/Robospresso'
 
 import { CHAT_LIVE, CHAT_STATUS_COPY } from '../constants'
+import type { CalculatorHandle } from '../hooks/use-chat'
 import { useChat } from '../hooks/use-chat'
 import type { RobospressoTransport } from '../utils/messages'
 import { ChatComposer } from './ChatComposer'
@@ -12,6 +13,8 @@ interface ChatPanelProps {
   transport?: RobospressoTransport
   /** Whether a model is configured; defaults to this build's flag. */
   live?: boolean
+  /** The page's calculator, for Robospresso's `fill_calculator`. */
+  calculator?: CalculatorHandle
 }
 
 /**
@@ -20,8 +23,14 @@ interface ChatPanelProps {
  * Answers stream from `@espressionism/agent` at `/api/chat`: text, plus
  * product cards and a store link drawn from the agent's display tools.
  */
-export function ChatPanel({ transport, live = CHAT_LIVE }: ChatPanelProps) {
-  const { messages, busy, searching, failed, send } = useChat({ transport })
+export function ChatPanel({
+  transport,
+  live = CHAT_LIVE,
+  calculator,
+}: ChatPanelProps) {
+  const { messages, busy, searching, failed, restartedAt, send, reset } =
+    useChat({ transport, calculator })
+  const started = messages.some((m) => m.role === 'user')
 
   return (
     <section
@@ -45,16 +54,25 @@ export function ChatPanel({ transport, live = CHAT_LIVE }: ChatPanelProps) {
           </p>
         </div>
         {/* Own row on phones (no room beside the title), right-aligned from sm. */}
-        <div className="flex basis-full sm:ml-auto sm:basis-auto">
+        <div className="flex basis-full items-center justify-between gap-3 sm:ml-auto sm:basis-auto sm:justify-end">
           <ChatStatusBadge live={live} />
+          <button
+            type="button"
+            onClick={reset}
+            disabled={busy || !started}
+            className="h-11 shrink-0 rounded-md border-2 border-screen-foreground px-3 font-pixel text-xs hover:bg-screen-foreground hover:text-screen disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            New chat
+          </button>
         </div>
       </header>
-      <ChatLog messages={messages} searching={searching} failed={failed} />
-      <ChatComposer
-        onSend={send}
-        busy={busy}
-        showSuggestions={!messages.some((m) => m.role === 'user')}
+      <ChatLog
+        messages={messages}
+        searching={searching}
+        failed={failed}
+        restartedAt={restartedAt}
       />
+      <ChatComposer onSend={send} busy={busy} showSuggestions={!started} />
     </section>
   )
 }

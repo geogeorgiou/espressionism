@@ -1,12 +1,13 @@
+import { CALCULATOR_TOOL, runCalculatorFill } from '@espressionism/calculator'
+
 import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
 import type { WebMcpStatus } from '@/features/webmcp/stores/webmcp-store'
 import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
 
 import type { CalculatorValues } from '../constants'
 import { AGENT_FILL_INPUT_SCHEMA } from '../constants'
-import { agentFillResult, applyAgentFill } from '../utils/agent-fill'
 
-export const CALCULATOR_TOOL_NAME = 'fill_calculator'
+export const CALCULATOR_TOOL_NAME = CALCULATOR_TOOL.name
 
 const ANNOTATIONS: WebMCP.ToolAnnotations = {
   readOnlyHint: false,
@@ -33,20 +34,18 @@ export function useCalculatorTool({
   setValue,
 }: CalculatorFormHandle): WebMcpStatus {
   return useWebMcpTool({
-    name: CALCULATOR_TOOL_NAME,
-    title: 'Fill the calculator',
-    description:
-      "Fill in the espresso machine break-even calculator with the user's coffee habit and machine costs, then return the result: break-even, totals and a verdict. Send only the fields you know; the rest keep their current values.",
+    ...CALCULATOR_TOOL,
     inputSchema: AGENT_FILL_INPUT_SCHEMA,
     annotations: ANNOTATIONS,
     execute: (input) => {
-      const fill = applyAgentFill(getValues(), input)
+      const fill = runCalculatorFill(getValues(), input)
       if (!fill.ok) return fill
       for (const name of Object.keys(fill.changes) as FieldName[]) {
         setValue(name, fill.values[name])
       }
       useWebMcpStore.getState().recordInvocation(CALCULATOR_TOOL_NAME)
-      return agentFillResult(fill.values)
+      const { changes: _changes, ...result } = fill
+      return result
     },
   })
 }

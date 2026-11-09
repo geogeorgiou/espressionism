@@ -30,16 +30,16 @@ It's also a small, real-world playground for the TanStack ecosystem (Start, Rout
 
 ## Overview
 
-Espressionism has two halves: a **UI** with two pages, and an **agent** that answers questions in the calculator's chat. Both read the same demo store data, so the store page and the chat always agree.
+Espressionism has two halves: a **UI** with two pages, and an **agent** that answers questions in the calculator's chat. Both share the same demo store data and the same calculator core, so the store page, the calculator and the chat always agree.
 
-<img src="docs/assets/architecture.svg" alt="Espressionism architecture: the chat sends questions to POST /api/chat, which prompts Gemini directly and streams back text plus product cards built by its tools (store search, show_machines, show_store_link) from the shared store data. Cards open the store pages in a new tab. In-browser agents use the same store search through WebMCP." width="100%" />
+<img src="docs/assets/architecture.svg" alt="Espressionism architecture: the chat sends each question, its session id and the calculator's values to POST /api/chat, which keeps the conversation in memory, prompts Gemini directly and streams back text plus product cards and calculator fills built by its tools (store search, show_machines, show_store_link, fill_calculator) from the shared store and calculator packages. Cards open the store pages in a new tab; fills update the calculator on the page. In-browser agents use the same store search and calculator tool through WebMCP." width="100%" />
 
-| Part           | What it does                                                                                                                                                                                                    | Status  |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| **Calculator** | Compares your café habit with brewing at home: break-even, yearly spend, real cost per cup. Inputs live in the URL. In-browser AI agents can fill it through [WebMCP](#webmcp-let-an-ai-agent-fill-it-in).      | ✅ Live |
-| **Store**      | A demo shop of 10 espresso machines (made-up prices and ratings), with price and rating filters and sorting, all kept in the URL, plus a page for each product.                                                 | ✅ Live |
-| **Chat**       | Robospresso, the espresso concierge on the calculator page. Answers stream in as text plus product cards and a "See all in the store" link; links open in a new tab. See [Robospresso chat](#robospresso-chat). | ✅ Live |
-| **Agent**      | `POST /api/chat`: Gemini (direct, via the AI SDK) with the store search and two display tools. Without an API key it answers with a placeholder.                                                                | ✅ Live |
+| Part           | What it does                                                                                                                                                                                                                                                    | Status  |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **Calculator** | Compares your café habit with brewing at home: break-even, yearly spend, real cost per cup. Inputs live in the URL. Robospresso can fill it from the chat, and in-browser AI agents through [WebMCP](#webmcp-let-an-ai-agent-fill-it-in).                       | ✅ Live |
+| **Store**      | A demo shop of 10 espresso machines (made-up prices and ratings), with price and rating filters and sorting, all kept in the URL, plus a page for each product.                                                                                                 | ✅ Live |
+| **Chat**       | Robospresso, the espresso concierge on the calculator page. He remembers the conversation, answers with text plus product cards and a "See all in the store" link (new tab), and can fill in the calculator for you. See [Robospresso chat](#robospresso-chat). | ✅ Live |
+| **Agent**      | `POST /api/chat`: Gemini (direct, via the AI SDK) with the store search and three display tools, and the conversation held on the server. Without an API key it answers with a placeholder.                                                                     | ✅ Live |
 
 ## Stack
 
@@ -96,14 +96,25 @@ Run from the repo root:
 
 ## Robospresso chat
 
-Ask Robospresso (the chat on the calculator page) recommends machines from the demo store. A question travels like this:
+Ask Robospresso (the chat on the calculator page) recommends machines from the demo store and works out whether one pays off. A question travels like this:
 
-1. The browser sends the conversation to `POST /api/chat` as **text turns only**. Cards and tool results stay in the browser, so nobody can slip fake prices to the model.
-2. The agent (`packages/agent`) prompts Gemini with three tools. `search_espresso_machines` filters the catalog (the same tool the store page offers over WebMCP). `show_machines` and `show_store_link` are **display tools**: the model picks which machines to show, and the server fills each card from the catalog, rejecting any slug the store doesn't sell.
+1. The browser sends **only the new question**, the session id from the last reply, and the calculator's current values to `POST /api/chat`. The server holds the conversation itself (see [Memory](#memory)), so nobody can slip a forged history or fake prices to the model.
+2. The agent (`packages/agent`) prompts Gemini with four tools. `search_espresso_machines` filters the catalog (the same tool the store page offers over WebMCP). `show_machines`, `show_store_link` and `fill_calculator` are **display tools**: the model picks which machines to show, and the server fills each card from the catalog, rejecting any slug the store doesn't sell; or the model names the calculator fields you mentioned, and the server merges them onto the page's values with the shared calculator core (`packages/calculator`, the same tool the page offers over WebMCP).
 3. The answer streams back as an [AI SDK UI message stream](https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol): text parts plus tool parts.
-4. The chat draws each part through a small renderer registry: text bubbles, skeleton cards while a call is in flight, then product cards and a store link that open in a new tab, so the conversation stays put. See [How the chat draws an answer](#how-the-chat-draws-an-answer).
+4. The chat draws each part through a small renderer registry: text bubbles, skeleton cards while a call is in flight, then product cards and a store link that open in a new tab, so the conversation stays put. A calculator fill updates the form (the verdict mascots hop: "Filled by your agent") and leaves a small result card. See [How the chat draws an answer](#how-the-chat-draws-an-answer).
 
 Every answer runs under fixed limits (4 model steps, 400 output tokens, 20 s). Upstream errors only reach the server log; the browser gets a generic apology and keeps whatever already arrived.
+
+### Memory
+
+Robospresso remembers the conversation on the server, like n8n's window-buffer memory: no database and nothing in browser storage.
+
+- The first reply opens a **session** and tells the browser its id in a transient `data-session` part. The browser keeps the id in memory and sends it with the next question.
+- The server keeps each session's turns as text, plus notes of what its display tools did (`[Cards shown: …]`, `[Calculator filled: …]`), so "the second one" or "and with three cups?" still make sense. Only completed answers are kept.
+- Each answer reads a **window** of the newest turns (up to 40 turns or 24,000 characters), always starting on a question, so long chats never fail on length.
+- Sessions expire after 30 idle minutes; at most 500 are kept (least recently used first out), 200 turns each. **New chat** starts a fresh one.
+- If a session is lost (expired, a restarted dev server, another serverless instance), the chat says "I lost track of our earlier chat, so let's start fresh." and carries on. On Vercel this happens now and then, since each function instance has its own memory; the store sits behind a `ConversationStore` interface, so a shared store like Redis could replace it.
+- In `pnpm dev`, a **Memory (dev)** section under the chat lists the sessions in LRU order (sizes only, never what was said).
 
 ### How the chat draws an answer
 
@@ -126,6 +137,7 @@ How `toPartView` maps each part:
 | `tool-show_machines` · `input-streaming` / `input-available`                          | `cards-loading` | One skeleton per requested slug (max 5)                     |
 | `tool-show_machines` · `output-available`, `ok: true`                                 | `cards`         | Compact `MachineCard`s, new tab                             |
 | `tool-show_store_link` · `output-available`, `ok: true`                               | `store-link`    | "See all N in the store" with the filters                   |
+| `tool-fill_calculator` · `output-available`, `ok: true`                               | `calculator`    | "Calculator updated" card; the form is filled once          |
 | `tool-search_espresso_machines` · any                                                 | none            | Nothing; while it runs the chat shows "Scanning the store…" |
 | any display tool with `ok: false`, `output-error`, or an output that fails its schema | none            | Nothing; the model fixes the call and a later part draws    |
 
@@ -179,7 +191,7 @@ All figures assume 52 weeks a year and flat prices.
 - **Break-even** = machine price ÷ ((café per year − home per year) ÷ 12) months. If a home cup costs as much as a café cup, the machine never pays for itself.
 - **Real cost per home cup** = (machine price + home per year × years) ÷ cups over those years
 
-The math lives in pure functions in `packages/client/src/features/calculator/utils/cost-model.ts`, and each one is unit-tested.
+The math lives in pure functions in `packages/calculator/src/cost-model.ts`, shared by the page and Robospresso, and each one is unit-tested.
 
 ## Project layout
 
@@ -199,7 +211,8 @@ packages/
       routes/         thin route entry points
     test/unit/        tests mirroring src/features
     test/e2e/         Playwright specs
-  agent/           chat handler, Gemini reply, tools, HTTP contract
+  agent/           chat handler, session memory, Gemini reply, tools, HTTP contract
+  calculator/      calculator schema, pure cost model + fill tool, shared by UI and agent
   store/           demo catalog + pure filter/sort, shared by UI and agent
 docs/
   assets/          README images

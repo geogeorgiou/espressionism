@@ -1,6 +1,6 @@
+import type { CoffeeInputs, CoffeeSummary } from '@espressionism/calculator'
 import { clsx } from 'clsx'
 
-import type { CoffeeInputs, CoffeeSummary } from '../utils/cost-model'
 import type { Currency } from '../utils/format'
 import { formatDuration, formatMoney } from '../utils/format'
 

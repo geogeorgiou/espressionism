@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 
 import { Robospresso } from '@/features/mascot/components/Robospresso'
 import type { RobotMood } from '@/features/mascot/utils/robot-sprite'
 
-import { CHAT_ERROR_REPLY } from '../constants'
+import { CHAT_ERROR_REPLY, CHAT_RESTARTED_NOTE } from '../constants'
 import type { RobospressoMessage } from '../utils/messages'
 import { messageText } from '../utils/messages'
 import { messageViews } from '../utils/parts'
@@ -15,6 +15,8 @@ interface ChatLogProps {
   searching: boolean
   /** Shows the apology under whatever the failed answer got out. */
   failed: boolean
+  /** Questions (1 = the first) to follow with the "start fresh" note. */
+  restartedAt: number[]
 }
 
 function Avatar({ mood = 'cool' }: { mood?: RobotMood }) {
@@ -25,7 +27,12 @@ function Avatar({ mood = 'cool' }: { mood?: RobotMood }) {
   )
 }
 
-export function ChatLog({ messages, searching, failed }: ChatLogProps) {
+export function ChatLog({
+  messages,
+  searching,
+  failed,
+  restartedAt,
+}: ChatLogProps) {
   const logRef = useRef<HTMLOListElement>(null)
 
   // `relative` on the log matters: the cards' sr-only text is absolutely
@@ -48,15 +55,29 @@ export function ChatLog({ messages, searching, failed }: ChatLogProps) {
       aria-label="Conversation"
       className="relative flex h-80 flex-col gap-3 overflow-y-auto px-5 py-4 sm:h-96"
     >
-      {messages.map((message) => {
+      {messages.map((message, index) => {
         if (message.role === 'user') {
+          const question = messages
+            .slice(0, index + 1)
+            .filter((m) => m.role === 'user').length
           return (
-            <li key={message.id} className="flex max-w-[85%] self-end">
-              <p className="rounded-md border-2 border-foreground bg-primary px-3 py-2 text-base text-primary-foreground">
-                <span className="sr-only">You: </span>
-                {messageText(message)}
-              </p>
-            </li>
+            <Fragment key={message.id}>
+              <li className="flex max-w-[85%] self-end">
+                <p className="rounded-md border-2 border-foreground bg-primary px-3 py-2 text-base text-primary-foreground">
+                  <span className="sr-only">You: </span>
+                  {messageText(message)}
+                </p>
+              </li>
+              {restartedAt.includes(question) && (
+                <li className="flex max-w-[85%] items-end gap-2 self-start">
+                  <Avatar />
+                  <p className="rounded-md border-2 border-dashed border-foreground bg-secondary px-3 py-2 text-sm text-secondary-foreground">
+                    <span className="sr-only">Robospresso: </span>
+                    {CHAT_RESTARTED_NOTE}
+                  </p>
+                </li>
+              )}
+            </Fragment>
           )
         }
         // An answer that so far is only its store search shows as the

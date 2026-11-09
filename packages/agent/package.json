@@ -18,6 +18,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@espressionism/calculator": "workspace:*",
     "@espressionism/store": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",

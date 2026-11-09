@@ -1,4 +1,5 @@
-import type { ChatTurn } from '@espressionism/agent/contract'
+import type { ChatRequest } from '@espressionism/agent/contract'
+import { DEFAULT_INPUTS, runCalculatorFill } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import {
   RouterProvider,
@@ -9,16 +10,27 @@ import {
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { UIMessageChunk } from 'ai'
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 
 import { ChatPanel } from '@/features/chat/components/ChatPanel'
-import { CHAT_ERROR_REPLY, CHAT_GREETING } from '@/features/chat/constants'
+import {
+  CHAT_ERROR_REPLY,
+  CHAT_GREETING,
+  CHAT_RESTARTED_NOTE,
+} from '@/features/chat/constants'
+import type { CalculatorHandle } from '@/features/chat/hooks/use-chat'
 import type { RobospressoTransport } from '@/features/chat/utils/messages'
-import { toTurns } from '@/features/chat/utils/messages'
+import { chatRequest } from '@/features/chat/utils/messages'
 
-function renderChat(transport: RobospressoTransport, live = true) {
+function renderChat(
+  transport: RobospressoTransport,
+  live = true,
+  calculator?: CalculatorHandle,
+) {
   const rootRoute = createRootRoute({
-    component: () => <ChatPanel transport={transport} live={live} />,
+    component: () => (
+      <ChatPanel transport={transport} live={live} calculator={calculator} />
+    ),
   })
   const router = createRouter({
     routeTree: rootRoute,
@@ -61,18 +73,27 @@ function tool(
   ]
 }
 
+const SESSION = '5f0c3a1e-8b7d-4c2a-9e61-2b4d6f8a0c11'
+const NEW_SESSION = '7a2e9c4b-1d3f-4e5a-8b6c-0f9e8d7c6b5a'
+
+/** The agent's opening part: the session this answer was recorded in. */
+function session(id: string, restarted = false): UIMessageChunk[] {
+  return [{ type: 'data-session', data: { id, restarted }, transient: true }]
+}
+
 type Reply = UIMessageChunk[] | Error
 
 /**
  * A fake agent: answers each question with the next scripted reply, as a
- * UI message stream, and records the turns it was sent. An `Error` reply
- * fails the request; a reply ending in an `error` chunk fails mid-stream.
+ * UI message stream, and records what each request carried. An `Error`
+ * reply fails the request; a reply ending in an `error` chunk fails
+ * mid-stream.
  */
 function fakeAgent(...replies: Reply[]) {
-  const calls: ChatTurn[][] = []
+  const calls: ChatRequest[] = []
   const transport: RobospressoTransport = {
-    sendMessages: async ({ messages }) => {
-      calls.push(toTurns(messages))
+    sendMessages: async ({ messages, body }) => {
+      calls.push(chatRequest(messages, body))
       const reply = replies[Math.min(calls.length - 1, replies.length - 1)]
       if (!reply) throw new Error('no reply scripted')
       if (reply instanceof Error) throw reply
@@ -221,38 +242,94 @@ describe('ChatPanel', () => {
     )
   })
 
-  it('sends text turns only, noting which cards were shown', async () => {
+  it('sends only the question, with the session the agent opened', async () => {
     const user = userEvent.setup()
     const agent = fakeAgent(
-      [
-        ...tool('s1', 'search_espresso_machines', {}, { ok: true, items: [] }),
-        ...text('One pick.'),
-        ...tool(
-          'c1',
-          'show_machines',
-          { slugs: [first.slug] },
-          { ok: true, items: [first] },
-        ),
-      ],
-      text('Sure.'),
+      [...session(SESSION), ...text('One pick.')],
+      [...session(SESSION), ...text('Sure.')],
     )
     renderChat(agent.transport)
     const input = await screen.findByLabelText('Your question')
 
     await user.type(input, 'First{Enter}')
-    await screen.findByRole('list', { name: 'Recommended machines' })
-    await waitFor(() => expect(sendButton().disabled).toBe(true))
+    await waitFor(async () =>
+      expect(await lastItem()).toBe('Robospresso: One pick.'),
+    )
     await user.type(input, 'Tell me more{Enter}')
 
     await waitFor(() => expect(agent.calls).toHaveLength(2))
-    expect(agent.calls.at(1)).toEqual([
-      { role: 'user', text: 'First' },
-      {
-        role: 'assistant',
-        text: `One pick.\n[Cards shown: ${first.slug}]`,
-      },
-      { role: 'user', text: 'Tell me more' },
+    expect(agent.calls).toEqual([
+      { sessionId: undefined, text: 'First' },
+      { sessionId: SESSION, text: 'Tell me more' },
     ])
+    // The session part is bookkeeping, never drawn.
+    expect((await log()).textContent).not.toContain(SESSION)
+  })
+
+  it('says so when the agent had lost the conversation', async () => {
+    const user = userEvent.setup()
+    const agent = fakeAgent(
+      [...session(SESSION), ...text('One pick.')],
+      [...session(NEW_SESSION, true), ...text('Starting over.')],
+      [...session(NEW_SESSION), ...text('Sure.')],
+    )
+    renderChat(agent.transport)
+    const input = await screen.findByLabelText('Your question')
+
+    await user.type(input, 'First{Enter}')
+    await waitFor(async () =>
+      expect(await lastItem()).toBe('Robospresso: One pick.'),
+    )
+    expect((await log()).textContent).not.toContain(CHAT_RESTARTED_NOTE)
+
+    await user.type(input, 'Second{Enter}')
+    await waitFor(async () =>
+      expect(await lastItem()).toBe('Robospresso: Starting over.'),
+    )
+    const items = within(await log())
+      .getAllByRole('listitem')
+      .map((item) => item.textContent)
+    // Right under the question that found the conversation gone.
+    expect(items.slice(-3)).toEqual([
+      'You: Second',
+      `Robospresso: ${CHAT_RESTARTED_NOTE}`,
+      'Robospresso: Starting over.',
+    ])
+
+    await user.type(input, 'Third{Enter}')
+    await waitFor(() => expect(agent.calls).toHaveLength(3))
+    expect(agent.calls.at(2)?.sessionId).toBe(NEW_SESSION)
+  })
+
+  it('starts a new chat: back to the greeting, with no session', async () => {
+    const user = userEvent.setup()
+    const agent = fakeAgent(
+      [...session(SESSION), ...text('One pick.')],
+      [...session(NEW_SESSION), ...text('Hello again.')],
+    )
+    renderChat(agent.transport)
+    const newChat = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'New chat',
+    })
+    expect(newChat.disabled).toBe(true)
+    const input = await screen.findByLabelText('Your question')
+
+    await user.type(input, 'First{Enter}')
+    await waitFor(async () =>
+      expect(await lastItem()).toBe('Robospresso: One pick.'),
+    )
+    await user.click(newChat)
+
+    const items = within(await log()).getAllByRole('listitem')
+    expect(items).toHaveLength(1)
+    expect(items[0]?.textContent).toContain(CHAT_GREETING)
+    expect(
+      screen.getByRole('list', { name: 'Suggested questions' }),
+    ).toBeTruthy()
+
+    await user.type(input, 'Hi{Enter}')
+    await waitFor(() => expect(agent.calls).toHaveLength(2))
+    expect(agent.calls.at(1)).toEqual({ sessionId: undefined, text: 'Hi' })
   })
 
   it('sends a suggested question when it is clicked', async () => {
@@ -269,7 +346,7 @@ describe('ChatPanel', () => {
     )
   })
 
-  it('apologises when the agent fails, and leaves that out of the history', async () => {
+  it('apologises when the agent fails, and clears it on the next answer', async () => {
     const user = userEvent.setup()
     const agent = fakeAgent(new Error('offline'), text('Back online.'))
     renderChat(agent.transport)
@@ -284,10 +361,7 @@ describe('ChatPanel', () => {
     await waitFor(async () =>
       expect(await lastItem()).toBe('Robospresso: Back online.'),
     )
-    expect(agent.calls.at(1)).toEqual([
-      { role: 'user', text: 'Hello?' },
-      { role: 'user', text: 'Again' },
-    ])
+    expect(agent.calls.at(1)).toEqual({ sessionId: undefined, text: 'Again' })
     expect((await log()).textContent).not.toContain(CHAT_ERROR_REPLY)
   })
 
@@ -316,6 +390,83 @@ describe('ChatPanel', () => {
     expect(
       screen.getByRole('list', { name: 'Recommended machines' }),
     ).toBeTruthy()
+  })
+
+  it('sends the calculator as the page shows it', async () => {
+    const user = userEvent.setup()
+    const agent = fakeAgent(text('Ok.'))
+    const values = { ...DEFAULT_INPUTS, cupsPerDay: 3 }
+    renderChat(agent.transport, true, {
+      getValues: () => values,
+      apply: vi.fn(),
+    })
+
+    await user.type(await screen.findByLabelText('Your question'), 'Hi{Enter}')
+
+    await waitFor(() => expect(agent.calls).toHaveLength(1))
+    expect(agent.calls[0]).toEqual({ text: 'Hi', calculator: values })
+  })
+
+  it('fills the calculator once and shows what it found', async () => {
+    const user = userEvent.setup()
+    const fill = runCalculatorFill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    const apply = vi.fn()
+    renderChat(
+      fakeAgent(
+        [
+          ...tool('f1', 'fill_calculator', { cupsPerDay: 2 }, fill),
+          ...text('Pays off fast.'),
+        ],
+        text('Anything else?'),
+      ).transport,
+      true,
+      { getValues: () => DEFAULT_INPUTS, apply },
+    )
+    const input = await screen.findByLabelText('Your question')
+
+    await user.type(input, 'Two a day?{Enter}')
+    const card = await screen.findByRole('region', {
+      name: 'Calculator updated',
+    })
+    expect(card.textContent).toContain(fill.ok ? fill.message : '')
+    const link = within(card).getByRole('link', { name: 'See the charts' })
+    expect(link.getAttribute('href')).toBe('#charts')
+    expect(apply).toHaveBeenCalledTimes(1)
+    expect(apply).toHaveBeenCalledWith(fill)
+
+    // Later renders (a new answer streaming in) never apply it again.
+    await user.type(input, 'More?{Enter}')
+    await waitFor(async () =>
+      expect(await lastItem()).toBe('Robospresso: Anything else?'),
+    )
+    expect(apply).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves the calculator alone when the fill failed', async () => {
+    const user = userEvent.setup()
+    const apply = vi.fn()
+    renderChat(
+      fakeAgent([
+        ...tool(
+          'f1',
+          'fill_calculator',
+          { cupsPerDay: 99 },
+          { ok: false, errors: [{ field: 'cupsPerDay', message: 'Too many' }] },
+        ),
+        ...text('Ten at most.'),
+      ]).transport,
+      true,
+      { getValues: () => DEFAULT_INPUTS, apply },
+    )
+
+    await user.type(await screen.findByLabelText('Your question'), 'Hi{Enter}')
+    await waitFor(async () =>
+      expect(await lastItem()).toBe('Robospresso: Ten at most.'),
+    )
+    expect(apply).not.toHaveBeenCalled()
+    expect(screen.queryByRole('region', { name: 'Calculator updated' })).toBe(
+      null,
+    )
   })
 
   it('ignores a blank question', async () => {

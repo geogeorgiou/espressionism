@@ -5,6 +5,7 @@ import type {
 } from '@espressionism/agent/contract'
 import {
   MAX_SHOWN_MACHINES,
+  fillCalculatorOutputSchema,
   showMachinesOutputSchema,
   showStoreLinkOutputSchema,
 } from '@espressionism/agent/contract'
@@ -26,6 +27,7 @@ export type PartView =
   | { kind: 'cards-loading'; count: number }
   | { kind: 'cards'; machines: Machine[] }
   | { kind: 'store-link'; search: StoreSearch; total: number }
+  | { kind: 'calculator'; message: string }
 
 /** Skeleton cards while `show_machines` is still being called. */
 const LOADING_CARDS = 2
@@ -64,6 +66,13 @@ export function toPartView(part: Part): PartView | null {
             search: storeLinkSearch(output.data),
             total: output.data.total,
           }
+        : null
+    }
+    case 'tool-fill_calculator': {
+      if (part.state !== 'output-available') return null
+      const output = fillCalculatorOutputSchema.safeParse(part.output)
+      return output.success && output.data.ok
+        ? { kind: 'calculator', message: output.data.message }
         : null
     }
     default:

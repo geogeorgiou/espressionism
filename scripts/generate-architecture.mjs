@@ -237,12 +237,12 @@ body += text(40, 52, 'ESPRESSIONISM · HOW IT FITS', {
 body += text(
   40,
   78,
-  'A UI and an agent, one source of truth: both read the same demo store.',
+  'A UI and an agent, one source of truth: both share the store and the calculator.',
   { size: 15, fill: C.muted },
 )
 
 body += group(32, 108, 352, 452, 'UI · PACKAGES/CLIENT')
-body += group(440, 108, 264, 280, 'AGENT · PACKAGES/AGENT')
+body += group(440, 108, 264, 292, 'AGENT · PACKAGES/AGENT')
 
 body += card({
   x: 48,
@@ -252,7 +252,7 @@ body += card({
   band: C.latte,
   title: 'CALCULATOR',
   sub: 'route /',
-  lines: ['Break-even, yearly spend,', 'real cost per cup'],
+  lines: ['Break-even, cost per cup;', 'core in packages/calculator'],
   status: 'live',
   textX: 140,
   icon: sprite(sprites.mug, 60, 148, 4),
@@ -265,7 +265,7 @@ body += card({
   band: C.teal,
   title: 'CHAT',
   sub: 'Ask Robospresso, on /',
-  lines: ['Streams text + product', 'cards (new tab)'],
+  lines: ['Streams text + cards;', 'fills the calculator'],
   status: 'live',
   textX: 140,
   icon: sprite(sprites.robot, 60, 292, 4),
@@ -288,22 +288,22 @@ body += card({
   x: 460,
   y: 136,
   w: 224,
-  h: 100,
+  h: 112,
   band: C.teal,
   title: 'CHAT API',
   sub: 'POST /api/chat',
-  lines: ['Vercel Function · UI stream'],
+  lines: ['Vercel Function · UI stream', 'Sessions held in memory'],
   status: 'live',
 })
 body += card({
   x: 460,
-  y: 268,
+  y: 272,
   w: 224,
-  h: 100,
+  h: 112,
   band: C.matcha,
   title: 'TOOLS',
   sub: 'search · show_machines',
-  lines: ['show_store_link'],
+  lines: ['show_store_link', 'fill_calculator'],
   status: 'live',
 })
 
@@ -323,17 +323,25 @@ body += card({
 body += card({
   x: 440,
   y: 424,
-  w: 504,
+  w: 240,
   h: 112,
   band: C.matcha,
   title: 'STORE DATA',
   sub: 'packages/store',
-  lines: ['10 machines, made-up prices', 'one search tool, two adapters'],
+  lines: ['10 machines, fake prices', 'search tool, 2 adapters'],
   status: 'live',
-  icon:
-    sprite(sprites.machines[1], 720, 456, 3) +
-    sprite(sprites.machines[2], 790, 456, 3) +
-    sprite(sprites.machines[0], 860, 456, 3),
+})
+
+body += card({
+  x: 704,
+  y: 424,
+  w: 240,
+  h: 112,
+  band: C.latte,
+  title: 'CALC CORE',
+  sub: 'packages/calculator',
+  lines: ['Schema, pure cost model', 'fill tool, 2 adapters'],
+  status: 'live',
 })
 
 body += card({
@@ -374,15 +382,26 @@ body += arrow(
 body += label(718, 194, 'PROMPT', { anchor: 'middle' })
 body += arrow([
   [848, 292],
-  [848, 318],
-  [688, 318],
+  [848, 322],
+  [688, 322],
 ])
-body += label(768, 308, 'TOOL CALL', { anchor: 'middle' })
+body += label(768, 312, 'TOOL CALL', { anchor: 'middle' })
 body += arrow([
-  [572, 372],
-  [572, 420],
+  [560, 390],
+  [560, 420],
 ])
-body += label(582, 400, 'READS')
+body += arrow([
+  [640, 390],
+  [640, 404],
+  [824, 404],
+  [824, 420],
+])
+body += label(570, 412, 'READS')
+body += arrow([
+  [204, 276],
+  [204, 252],
+])
+body += label(216, 268, 'FILLS')
 body += arrow([
   [204, 396],
   [204, 420],
@@ -421,7 +440,7 @@ async function faces(family, query) {
 const fontCss =
   (await faces(PIX, 'Silkscreen')) + (await faces(SANS, 'Karla:wght@400;700'))
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges" role="img" aria-label="Espressionism architecture: the chat sends questions to POST /api/chat, which prompts Gemini directly and streams back text plus product cards built by its tools (store search, show_machines, show_store_link) from the shared store data. Cards open the store pages in a new tab. In-browser agents use the same store search through WebMCP.">
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges" role="img" aria-label="Espressionism architecture: the chat sends each question, its session id and the calculator's values to POST /api/chat, which keeps the conversation in memory, prompts Gemini directly and streams back text plus product cards and calculator fills built by its tools (store search, show_machines, show_store_link, fill_calculator) from the shared store and calculator packages. Cards open the store pages in a new tab; fills update the calculator on the page. In-browser agents use the same store search and calculator tool through WebMCP.">
 <defs><style>${fontCss.replace(/\s+/g, ' ')} text { text-rendering: geometricPrecision; }</style>
 <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="#ffffff" opacity="0.03"/></pattern></defs>
 <rect width="${W}" height="${H}" fill="${C.out}"/>
