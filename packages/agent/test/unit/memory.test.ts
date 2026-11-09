@@ -77,6 +77,36 @@ describe('createInMemoryStore', () => {
     ])
   })
 
+  it('lists its sessions least recently used first, without touching them', () => {
+    let now = 0
+    const ids = ['a', 'b', 'c']
+    const store = createInMemoryStore({
+      ttlMs: 1000,
+      maxSessions: 3,
+      maxTurns: 10,
+      now: () => now,
+      randomId: () => ids.shift() ?? 'x',
+    })
+    store.create() // a
+    now = 100
+    store.create() // b
+    now = 200
+    store.append('a', [{ role: 'user', text: 'Under €300?' }])
+    now = 1150
+
+    expect(store.snapshot()).toEqual({
+      ttlMs: 1000,
+      maxSessions: 3,
+      maxTurns: 10,
+      sessions: [
+        { id: 'b', turns: 0, chars: 0, idleMs: 1050, expired: true },
+        { id: 'a', turns: 1, chars: 11, idleMs: 950, expired: false },
+      ],
+    })
+    // Looking is not using: the order and the clocks stay as they were.
+    expect(store.snapshot().sessions.map((s) => s.id)).toEqual(['b', 'a'])
+  })
+
   it('refuses to append to a session it does not hold', () => {
     const store = createInMemoryStore()
     expect(() =>

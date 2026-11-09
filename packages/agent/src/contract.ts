@@ -4,13 +4,15 @@
  * (`@espressionism/agent/contract`) without pulling the agent into the
  * browser bundle.
  *
- * Requests are plain text turns. Replies are an AI SDK UI message stream
- * (server-sent events): text parts plus tool parts the client renders as
- * components. The display tools' outputs are parsed with the schemas below.
+ * A request is one question plus the session it belongs to; the server
+ * holds the conversation (Robospresso's memory). Replies are an AI SDK UI
+ * message stream (server-sent events): a transient `data-session` part, then
+ * text parts plus tool parts the client renders as components. The display
+ * tools' outputs and the session part are parsed with the schemas below.
  */
 import { machineSchema, searchResultSchema } from '@espressionism/store'
 import type { SearchToolInput, SearchToolResult } from '@espressionism/store'
-import type { UIDataTypes, UIMessage } from 'ai'
+import type { UIMessage } from 'ai'
 import { z } from 'zod'
 
 export { machineSchema, searchResultSchema }
@@ -19,32 +21,40 @@ export const CHAT_ENDPOINT = '/api/chat'
 
 /** Longest question the composer accepts. */
 export const MAX_MESSAGE_LENGTH = 280
-/** Turns of history the agent reads per request. */
-export const MAX_HISTORY = 40
 /** Largest request body the handler reads, in bytes. */
-export const MAX_BODY_BYTES = 32 * 1024
+export const MAX_BODY_BYTES = 4 * 1024
 /** Most machines one `show_machines` call puts on screen. */
 export const MAX_SHOWN_MACHINES = 5
 
 /**
- * One turn of history: text only. Tool parts never travel back to the
- * server, so a client can't forge catalog data for the model to trust; the
- * model searches again whenever it needs facts.
+ * One turn of a session: text only. The server writes every turn itself,
+ * so tool parts never reach the model from the browser; the model searches
+ * again whenever it needs facts.
  */
 export const chatTurnSchema = z.object({
   role: z.enum(['user', 'assistant']),
   text: z.string().trim().min(1).max(2000),
 })
 
-/** `POST /api/chat` body: the conversation so far, ending with the user. */
-export const chatRequestSchema = z.object({
-  messages: z
-    .array(chatTurnSchema)
-    .min(1)
-    .max(MAX_HISTORY)
-    .refine((turns) => turns.at(-1)?.role === 'user', {
-      message: 'The last turn must be the user',
-    }),
+/**
+ * `POST /api/chat` body: the new question, and the session it continues
+ * (left out on the first question and after "New chat").
+ */
+export const chatRequestSchema = z
+  .object({
+    sessionId: z.uuid().optional(),
+    text: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+  })
+  .strict()
+
+/**
+ * The `data-session` part opening every reply: the session the answer was
+ * recorded in. `restarted` means the server had lost the session the client
+ * asked for and started a new one.
+ */
+export const sessionDataSchema = z.object({
+  id: z.uuid(),
+  restarted: z.boolean(),
 })
 
 /** Any error the agent answers with before the stream starts. */
@@ -80,6 +90,7 @@ export const showStoreLinkOutputSchema = z.discriminatedUnion('ok', [
 export type ChatTurn = z.infer<typeof chatTurnSchema>
 export type ChatRequest = z.infer<typeof chatRequestSchema>
 export type ChatError = z.infer<typeof chatErrorSchema>
+export type SessionData = z.infer<typeof sessionDataSchema>
 export type ShowMachinesOutput = z.infer<typeof showMachinesOutputSchema>
 export type ShowStoreLinkOutput = z.infer<typeof showStoreLinkOutputSchema>
 export type { Machine, SearchResult } from '@espressionism/store'
@@ -99,9 +110,14 @@ export type RobospressoTools = {
   show_store_link: { input: ShowStoreLinkInput; output: ShowStoreLinkOutput }
 }
 
+/** The data parts a reply can carry, by name (`data-<name>`). */
+export type RobospressoData = {
+  session: SessionData
+}
+
 /** A chat message as the UI holds it: text and tool parts, in order. */
 export type RobospressoMessage = UIMessage<
   unknown,
-  UIDataTypes,
+  RobospressoData,
   RobospressoTools
 >

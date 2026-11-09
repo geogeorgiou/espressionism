@@ -1,7 +1,14 @@
 export type { AgentConfig, ChatHandler, ReplyFn, ReplyOptions } from './handler'
 export { createChatHandler } from './handler'
-export type { ConversationStore, InMemoryStoreOptions } from './memory'
-export { createInMemoryStore } from './memory'
+export type {
+  ConversationStore,
+  InMemoryStore,
+  InMemoryStoreOptions,
+  MemorySnapshot,
+  SessionSummary,
+  WindowBudget,
+} from './memory'
+export { createInMemoryStore, selectWindow } from './memory'
 export type { AgentEnv } from './config'
 export { DEFAULT_GEMINI_MODEL, agentConfigFromEnv } from './config'
 export type { StoreModel, StoreReplyConfig, StoreReplyLimits } from './reply'

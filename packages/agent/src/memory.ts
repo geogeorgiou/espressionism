@@ -15,6 +15,31 @@ export interface ConversationStore {
   delete: (id: string) => void
 }
 
+/** One session as the dev overview shows it: no turn text, only sizes. */
+export interface SessionSummary {
+  id: string
+  turns: number
+  chars: number
+  /** Time since the session was last used. */
+  idleMs: number
+  /** Past its TTL, waiting for the next lazy cleanup. */
+  expired: boolean
+}
+
+/** The in-memory store's limits and sessions, least recently used first. */
+export interface MemorySnapshot {
+  ttlMs: number
+  maxSessions: number
+  maxTurns: number
+  sessions: SessionSummary[]
+}
+
+/** The in-memory store, plus a read-only look inside for development. */
+export interface InMemoryStore extends ConversationStore {
+  /** Every session held, least recently used first. Not a use. */
+  snapshot: () => MemorySnapshot
+}
+
 export interface InMemoryStoreOptions {
   /** How long an unused session lives. Default 30 minutes. */
   ttlMs?: number
@@ -42,7 +67,7 @@ export function createInMemoryStore({
   maxTurns = 200,
   now = Date.now,
   randomId = () => crypto.randomUUID(),
-}: InMemoryStoreOptions = {}): ConversationStore {
+}: InMemoryStoreOptions = {}): InMemoryStore {
   const sessions = new Map<string, Session>()
 
   const expired = (session: Session) => now() - session.usedAt > ttlMs
@@ -89,5 +114,49 @@ export function createInMemoryStore({
     delete(id) {
       sessions.delete(id)
     },
+    snapshot() {
+      return {
+        ttlMs,
+        maxSessions,
+        maxTurns,
+        sessions: [...sessions].map(([id, session]) => ({
+          id,
+          turns: session.turns.length,
+          chars: session.turns.reduce((sum, turn) => sum + turn.text.length, 0),
+          idleMs: now() - session.usedAt,
+          expired: expired(session),
+        })),
+      }
+    },
   }
+}
+
+export interface WindowBudget {
+  maxTurns: number
+  maxChars: number
+}
+
+/**
+ * The window: the latest question plus the newest turns before it that fit
+ * the budget, starting on a user turn so the model never reads an answer
+ * without its question. The latest question is always kept, even over budget.
+ */
+export function selectWindow(
+  turns: ChatTurn[],
+  { maxTurns, maxChars }: WindowBudget = { maxTurns: 40, maxChars: 24_000 },
+): ChatTurn[] {
+  const last = turns.findLastIndex((turn) => turn.role === 'user')
+  if (last === -1) return []
+  let start = last
+  let chars = turns[last].text.length
+  while (start > 0) {
+    const turn = turns[start - 1]
+    if (last - start + 2 > maxTurns || chars + turn.text.length > maxChars) {
+      break
+    }
+    start -= 1
+    chars += turn.text.length
+  }
+  while (turns[start].role !== 'user') start += 1
+  return turns.slice(start, last + 1)
 }
