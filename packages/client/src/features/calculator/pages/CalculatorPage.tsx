@@ -2,6 +2,7 @@ import { useSelector } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 
 import { ChatPanel } from '@/features/chat/components/ChatPanel'
+import { MemoryOverview } from '@/features/chat/components/MemoryOverview'
 import { useAppForm } from '@/features/common/form/form'
 import { useToolInvokedAt } from '@/features/webmcp/hooks/use-webmcp-tool'
 import { Route } from '@/routes/index'
@@ -108,6 +109,7 @@ export function CalculatorPage() {
       </div>
       <div className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
         <ChatPanel />
+        {import.meta.env.DEV && <MemoryOverview />}
       </div>
     </>
   )
