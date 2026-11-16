@@ -78,7 +78,7 @@ test/unit/       — handler, reply, memory and window tests (Vitest, node envir
 
 - **Model: Gemini, direct.** `@ai-sdk/google` with a Google AI Studio key; no AI Gateway. `createStoreReply` takes a model _object_ (`StoreModel` excludes strings): a bare `'creator/model'` string would route through the AI Gateway, the AI SDK's default global provider.
 - **Env is injected.** The agent never reads `process.env`. Hosts pass their env to `agentConfigFromEnv`: `api/chat.ts` passes `process.env`, the Vite plugin passes `loadEnv(mode, envDir, '')`. Variables: `GOOGLE_GENERATIVE_AI_API_KEY` (a Vercel **Secret**; locally `packages/client/.env`, see `.env.example`) and optional `GEMINI_MODEL` (default `DEFAULT_GEMINI_MODEL`). Never give them a `VITE_` prefix.
-- **Display tools (generative UI).** The model chooses _what_ to show, the client owns _how_. `show_machines({ slugs })` and `show_store_link(filters)` return catalog data (`{ ok: true, … }`) or `{ ok: false, errors }` for unknown slugs and bad filters, so the model can retry; their output schemas live in `contract.ts` and the client parses them before drawing. `fill_calculator(fields)` runs the shared `runCalculatorFill` on the values the page sent (`ReplyOptions.calculator`, else `DEFAULT_INPUTS`), so it's built per answer (`replyTools`); the browser applies each successful output to the form once per `toolCallId`. Input that breaks a tool's schema never reaches `execute`: the AI SDK hands the model an `error-text` result instead. A new kind of card = a display tool here (flat, `.strict()` input), its output schema in the contract, a view in the client's `toPartView` and a renderer in `MessageParts`. Display tools are for Robospresso only, never WebMCP.
+- **Display tools (generative UI).** The model chooses _what_ to show, the client owns _how_. `show_machines({ slugs })` and `show_store_link(filters)` return catalog data (`{ ok: true, … }`) or `{ ok: false, errors }` for unknown slugs and bad filters, so the model can retry; their output schemas live in `contract.ts` and the client parses them before drawing. `fill_calculator(fields)` runs the shared `fill` on the values the page sent (`ReplyOptions.calculator`, else `DEFAULT_INPUTS`), so it's built per answer (`replyTools`); the browser applies each successful output to the form once per `toolCallId`. Input that breaks a tool's schema never reaches `execute`: the AI SDK hands the model an `error-text` result instead. A new kind of card = a display tool here (flat, `.strict()` input), its output schema in the contract, a view in the client's `toPartView` and a renderer in `MessageParts`. Display tools are for Robospresso only, never WebMCP.
 - **Memory (server-held sessions).** The handler owns the conversation; the client sends only the new question plus the session id it read from the last reply.
   - Every reply opens with a **transient** `data-session { id, restarted }` part (reaches `useChat`'s `onData`, never `message.parts`). An unknown or expired id starts a new session with `restarted: true` (logged as `chat: session restarted`, no content); a malformed id is a 400; a second question while the session is answering is a 409.
   - Turns are text only (`chatTurnSchema`). The handler records the user turn up front and the assistant turn in `createUIMessageStream`'s `onEnd`, **only on `outcome.status === 'completed'`**. Replies report failure in-band, so the handler reads the reply's chunks and declares the outcome itself (`writer.setOutcome`): `merge()` doesn't carry an outcome, and error chunks never reach `responseMessage`. The assistant turn gets server-written notes, `[Cards shown: …]` and `[Calculator filled: …]`, so follow-ups can refer back.
@@ -102,18 +102,19 @@ The break-even calculator's core, shared by the page (form, URL, WebMCP) and Rob
 src/
 ├── drinks.ts     — DRINKS, DRINK_LABELS (the mascot's MASCOT_FLAVORS is DRINKS)
 ├── format.ts     — CURRENCIES, formatMoney, formatDuration
-├── schema.ts     — calculatorSchema, CalculatorValues, DEFAULT_INPUTS, agentFillSchema
-├── cost-model.ts — summarize, verdictFor, … (pure money math over CoffeeInputs)
-├── inputs.ts     — toCoffeeInputs
-├── agent-fill.ts — applyAgentFill, agentFillResult
-├── tool.ts       — fill_calculator, defined once: CALCULATOR_TOOL, fillToolInputSchema, fillToolOutputSchema, runCalculatorFill
+├── schema.ts     — calculatorSchema, CalculatorValues, DEFAULT_INPUTS
+├── cost-model.ts — pure money math over CoffeeInputs: summarize, verdictFor (internal), chart series (public)
+├── analyze.ts    — analyze(values) → { summary, verdict, message }
+├── fill.ts       — fill(current, input): merge, validate, analyze
+├── tool.ts       — fill_calculator, defined once: CALCULATOR_TOOL, fillToolInputSchema, fillToolOutputSchema
 └── index.ts
-test/unit/        — cost model, agent fill, tool (Vitest, node environment)
+test/unit/        — cost model, analyze, fill (Vitest, node environment)
 ```
 
+- **Two functions to learn.** Results go through `analyze(values)`, fills through `fill(current, input)`; `summarize` and `verdictFor` stay internal. `CalculatorValues` satisfies `CoffeeInputs`, so the chart series take the form values as they are.
 - **Money math is pure and tested.** Every change to `cost-model.ts` needs a matching test in `test/unit/cost-model.test.ts`.
 - **Rules live here once; boundaries derive their policy.** The form shows `calculatorSchema`'s messages, the URL drops bad params (`calculatorSearchSchema` maps the shared shape with `.optional().catch(undefined)`), agents get `{ ok: false, errors }`, the server returns 400. Never restate a bound elsewhere; the client's URL test checks, field by field, that the URL accepts exactly what the shared rules accept.
-- **One tool, two adapters**, as in the store: `runCalculatorFill(current, input)` never throws and returns `{ ok: true, changes, values, summary, verdict, message }` or `{ ok: false, errors }`. The agent's tool (`tools.ts`) and the page's WebMCP tool only adapt it.
+- **One tool, two adapters**, as in the store: `fill(current, input)` never throws and returns `{ ok: true, changes, values, summary, verdict, message }` or `{ ok: false, errors }`. The agent's tool (`tools.ts`) and the page's WebMCP tool only adapt it.
 
 ## Store (`packages/store/`)
 
@@ -224,7 +225,7 @@ The page offers tools to in-browser AI agents through [WebMCP](https://webmachin
 - `execute` is read through a ref, but `inputSchema` and `annotations` are the tool's identity: keep them module constants, or the tool re-registers every render.
 - Derive `inputSchema` from Zod with `z.toJSONSchema`. Put agent-facing descriptions on the schema with `.meta({ description })` as the **last** call in each chain, and prefer checks that map to JSON Schema (`.gt`, `.int`, `.max`) over `.refine`, which `toJSONSchema` drops.
 - `search_espresso_machines` (`store/hooks/use-store-search-tool.ts`, mounted by `StorePage`) registers the store's shared tool with `SEARCH_TOOL_INPUT_SCHEMA` (`z.toJSONSchema` of `searchToolInputSchema`). A valid search replaces every filter on the form (`agentSearchToForm`; a rating between the select's steps shows the next one down) so the URL sync runs, and returns the result; invalid input changes nothing and returns the errors.
-- `fill_calculator` (`calculator/hooks/use-calculator-tool.ts`) adapts the package's `runCalculatorFill` (any subset of fields, merged onto the form values), sets each changed field with `form.setFieldValue` so validation and the URL sync run as if typed, and returns the result (values, summary, verdict, message; `changes` stripped) or `{ ok: false, errors }`. Robospresso's fills go through the same path (`CalculatorPage`'s handle). A successful call makes the verdict mascots hop and shows "Filled by your agent". `useCalculatorTool` returns the tool's status.
+- `fill_calculator` (`calculator/hooks/use-calculator-tool.ts`) adapts the package's `fill` (any subset of fields, merged onto the form values), sets each changed field with `form.setFieldValue` so validation and the URL sync run as if typed, and returns the result (values, summary, verdict, message; `changes` stripped) or `{ ok: false, errors }`. Robospresso's fills go through the same path (`CalculatorPage`'s handle). A successful call makes the verdict mascots hop and shows "Filled by your agent". `useCalculatorTool` returns the tool's status.
 - Unit tests stub `document.modelContext` with `stubModelContext` from `test/unit/features/webmcp/model-context.ts` (spec-like: duplicate names reject; restore it in `finally`/`afterEach`, and reset the store with `resetWebMcpStore`). Playwright's Chromium has no WebMCP, so `test/e2e/webmcp.spec.ts` stubs it with `addInitScript` and calls the captured tool's `execute`.
 
 ### Charts: react-charts (TanStack Charts)

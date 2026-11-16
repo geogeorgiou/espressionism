@@ -1,4 +1,4 @@
-import { CALCULATOR_TOOL, runCalculatorFill } from '@espressionism/calculator'
+import { CALCULATOR_TOOL, fill } from '@espressionism/calculator'
 
 import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
 import type { WebMcpStatus } from '@/features/webmcp/stores/webmcp-store'
@@ -38,13 +38,13 @@ export function useCalculatorTool({
     inputSchema: AGENT_FILL_INPUT_SCHEMA,
     annotations: ANNOTATIONS,
     execute: (input) => {
-      const fill = runCalculatorFill(getValues(), input)
-      if (!fill.ok) return fill
-      for (const name of Object.keys(fill.changes) as FieldName[]) {
-        setValue(name, fill.values[name])
+      const output = fill(getValues(), input)
+      if (!output.ok) return output
+      for (const name of Object.keys(output.changes) as FieldName[]) {
+        setValue(name, output.values[name])
       }
       useWebMcpStore.getState().recordInvocation(CALCULATOR_TOOL_NAME)
-      const { changes: _changes, ...result } = fill
+      const { changes: _changes, ...result } = output
       return result
     },
   })

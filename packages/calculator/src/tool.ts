@@ -2,16 +2,12 @@
  * The calculator tool, defined once. Robospresso's model reaches it through
  * the AI SDK (`packages/agent`), a visitor's in-browser agent through WebMCP
  * (the client's calculator page). Both adapters hand the raw input and the
- * current form values to `runCalculatorFill`, so they validate and answer
- * the same way.
+ * current form values to `fill`, so they validate and answer the same way.
  */
 import { z } from 'zod'
 
-import type { AgentFillError } from './agent-fill'
-import { agentFillResult, applyAgentFill } from './agent-fill'
 import type { CoffeeSummary, Verdict } from './cost-model'
-import type { CalculatorValues } from './schema'
-import { agentFillSchema, calculatorSchema } from './schema'
+import { calculatorSchema } from './schema'
 
 export const CALCULATOR_TOOL = {
   name: 'fill_calculator',
@@ -21,7 +17,7 @@ export const CALCULATOR_TOOL = {
 } as const
 
 /** What agents may send: any subset of the calculator's fields. */
-export const fillToolInputSchema = agentFillSchema
+export const fillToolInputSchema = calculatorSchema.partial().strict()
 
 export type FillToolInput = z.infer<typeof fillToolInputSchema>
 
@@ -58,19 +54,3 @@ export const fillToolOutputSchema = z.discriminatedUnion('ok', [
 ])
 
 export type FillToolOutput = z.infer<typeof fillToolOutputSchema>
-
-/**
- * Merges an agent's input onto the current values and returns the result,
- * or the errors. Never throws; invalid input changes nothing.
- */
-export function runCalculatorFill(
-  current: CalculatorValues,
-  input: unknown,
-): FillToolOutput {
-  const fill = applyAgentFill(current, input)
-  if (!fill.ok)
-    return { ok: false, errors: fill.errors satisfies AgentFillError[] }
-  const result = agentFillResult(fill.values)
-  if (!result.ok) return result
-  return { ...result, changes: fill.changes }
-}

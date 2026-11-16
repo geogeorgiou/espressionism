@@ -10,7 +10,6 @@ export type { CalculatorValues } from '@espressionism/calculator'
 export {
   DEFAULT_INPUTS,
   DRINK_LABELS,
-  agentFillSchema,
   calculatorSchema,
 } from '@espressionism/calculator'
 

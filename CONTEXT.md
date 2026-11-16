@@ -35,3 +35,9 @@ _Avoid_: UI tool, widget
 **Fill**:
 Robospresso or a browser agent setting some of the calculator's fields on the visitor's behalf; the fields it didn't name keep what the page shows.
 _Avoid_: Autofill, prefill
+
+### The calculator
+
+**Analysis**:
+The calculator's read on one set of valid values: the summary (break-even, totals), the verdict and one sentence that states it. The page, Robospresso and browser agents all read the same analysis.
+_Avoid_: Result (too vague), report

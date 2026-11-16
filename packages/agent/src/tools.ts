@@ -1,7 +1,7 @@
 import {
   CALCULATOR_TOOL,
+  fill,
   fillToolInputSchema,
-  runCalculatorFill,
 } from '@espressionism/calculator'
 import type { CalculatorValues } from '@espressionism/calculator'
 import {
@@ -109,7 +109,7 @@ export function calculatorTool(current: CalculatorValues) {
     title: CALCULATOR_TOOL.title,
     description: CALCULATOR_TOOL.description,
     inputSchema: fillToolInputSchema,
-    execute: (input) => runCalculatorFill(current, input),
+    execute: (input) => fill(current, input),
   })
 }
 

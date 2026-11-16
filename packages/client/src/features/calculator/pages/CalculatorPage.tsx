@@ -1,8 +1,4 @@
-import {
-  summarize,
-  verdictFor,
-  toCoffeeInputs,
-} from '@espressionism/calculator'
+import { analyze } from '@espressionism/calculator'
 import { useSelector } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { useMemo } from 'react'
@@ -83,9 +79,7 @@ export function CalculatorPage() {
   const committed: CalculatorValues = parsed.success
     ? parsed.data
     : { ...DEFAULT_INPUTS, ...search }
-  const inputs = toCoffeeInputs(committed)
-  const summary = summarize(inputs)
-  const verdict = verdictFor(summary, inputs.years)
+  const { summary, verdict } = analyze(committed)
 
   return (
     <>
@@ -110,24 +104,27 @@ export function CalculatorPage() {
           <VerdictPanel
             verdict={verdict}
             summary={summary}
-            years={inputs.years}
+            years={committed.years}
             currency={committed.currency}
             flavor={committed.drink}
             agentFilledAt={agentFilledAt}
           />
           <StatsGrid
             summary={summary}
-            inputs={inputs}
+            inputs={committed}
             currency={committed.currency}
           />
           <div id="charts" className="flex scroll-mt-6 flex-col gap-6">
             <CumulativeCostChart
-              inputs={inputs}
+              inputs={committed}
               currency={committed.currency}
               breakEvenMonths={summary.breakEvenMonths}
             />
-            <YearlySpendChart inputs={inputs} currency={committed.currency} />
-            <CostPerCupChart inputs={inputs} currency={committed.currency} />
+            <YearlySpendChart
+              inputs={committed}
+              currency={committed.currency}
+            />
+            <CostPerCupChart inputs={committed} currency={committed.currency} />
           </div>
         </div>
       </div>

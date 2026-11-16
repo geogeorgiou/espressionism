@@ -1,5 +1,5 @@
 import type { RobospressoMessage } from '@espressionism/agent/contract'
-import { DEFAULT_INPUTS, runCalculatorFill } from '@espressionism/calculator'
+import { DEFAULT_INPUTS, fill } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import { describe, expect, it } from 'vite-plus/test'
 
@@ -106,10 +106,10 @@ describe('toPartView', () => {
   })
 
   it('draws the calculator card from a successful fill only', () => {
-    const fill = runCalculatorFill(DEFAULT_INPUTS, { cupsPerDay: 2 })
-    expect(toPartView(fillPart(fill))).toEqual({
+    const output = fill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    expect(toPartView(fillPart(output))).toEqual({
       kind: 'calculator',
-      message: fill.ok ? fill.message : '',
+      message: output.ok ? output.message : '',
     })
     expect(
       toPartView(
