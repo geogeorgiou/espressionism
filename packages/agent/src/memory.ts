@@ -138,7 +138,7 @@ export interface WindowBudget {
 
 /**
  * The window: the latest question plus the newest turns before it that fit
- * the budget, starting on a user turn so the model never reads an answer
+ * the budget, starting on a visitor turn so the model never reads an answer
  * without its question. The latest question is always kept, even over budget.
  */
 export function selectWindow(

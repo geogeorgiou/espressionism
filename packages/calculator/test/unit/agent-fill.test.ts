@@ -92,7 +92,7 @@ describe('agentFillResult', () => {
       years: 1,
       currency: 'USD',
     })
-    expect(result.ok && result.verdict).toBe('never')
+    expect(result.ok && result.verdict).toBe('cafe-wins')
     expect(result.ok && result.message).toMatch(
       /^The café wins over 1 year: buying out costs \$\d[\d,]* less than the machine\.$/,
     )

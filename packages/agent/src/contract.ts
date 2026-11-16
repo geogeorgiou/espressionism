@@ -24,15 +24,23 @@ export { calculatorSchema, machineSchema, searchResultSchema }
 
 export const CHAT_ENDPOINT = '/api/chat'
 
-/** Longest question the composer accepts. */
-export const MAX_MESSAGE_LENGTH = 280
 /** Largest request body the handler reads, in bytes. */
 export const MAX_BODY_BYTES = 4 * 1024
 /** Most machines one `show_machines` call puts on screen. */
 export const MAX_SHOWN_MACHINES = 5
 
 /**
- * One turn of a session: text only. The server writes every turn itself,
+ * The text of the visitor's turn: trimmed, non-empty and short. The
+ * composer and the handler both validate a question with it.
+ */
+export const turnTextSchema = z
+  .string()
+  .trim()
+  .min(1, 'Ask me something first')
+  .max(280, 'Keep it under 280 characters')
+
+/**
+ * One turn of a conversation: text only. The server writes every turn itself,
  * so tool parts never reach the model from the browser; the model searches
  * again whenever it needs facts.
  */
@@ -49,7 +57,7 @@ export const chatTurnSchema = z.object({
 export const chatRequestSchema = z
   .object({
     sessionId: z.uuid().optional(),
-    text: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+    text: turnTextSchema,
     calculator: calculatorSchema.optional(),
   })
   .strict()

@@ -25,8 +25,8 @@ export interface CoffeeInputs {
 export interface CoffeeSummary {
   cupsPerYear: number
   cafeYearly: number
-  /** Running cost at home per year (ingredients + maintenance), machine excluded. */
-  homeRunningYearly: number
+  /** Home cost per year (ingredients + upkeep), machine excluded. */
+  homeCostYearly: number
   /** What you keep each year once the machine is paid for. */
   yearlySavings: number
   /** Months until the machine has paid for itself, or null if it never does. */
@@ -64,22 +64,21 @@ export function cupsPerYear(inputs: CoffeeInputs): number {
 export function summarize(inputs: CoffeeInputs): CoffeeSummary {
   const cups = cupsPerYear(inputs)
   const cafeYearly = cups * inputs.cafePrice
-  const homeRunningYearly =
-    cups * inputs.homeCostPerCup + inputs.yearlyMaintenance
-  const yearlySavings = cafeYearly - homeRunningYearly
+  const homeCostYearly = cups * inputs.homeCostPerCup + inputs.yearlyMaintenance
+  const yearlySavings = cafeYearly - homeCostYearly
   const breakEvenMonths =
     yearlySavings > 0
       ? inputs.machinePrice / (yearlySavings / MONTHS_PER_YEAR)
       : null
 
   const cafeTotal = cafeYearly * inputs.years
-  const homeTotal = inputs.machinePrice + homeRunningYearly * inputs.years
+  const homeTotal = inputs.machinePrice + homeCostYearly * inputs.years
   const totalCups = cups * inputs.years
 
   return {
     cupsPerYear: cups,
     cafeYearly,
-    homeRunningYearly,
+    homeCostYearly,
     yearlySavings,
     breakEvenMonths,
     cafeTotal,
@@ -91,22 +90,22 @@ export function summarize(inputs: CoffeeInputs): CoffeeSummary {
 
 /** Running totals for both options, one point per month from month 0. */
 export function cumulativeCosts(inputs: CoffeeInputs): CumulativePoint[] {
-  const { cafeYearly, homeRunningYearly } = summarize(inputs)
+  const { cafeYearly, homeCostYearly } = summarize(inputs)
   const months = Math.round(inputs.years * MONTHS_PER_YEAR)
   return Array.from({ length: months + 1 }, (_, month) => ({
     month,
     cafe: (cafeYearly / MONTHS_PER_YEAR) * month,
-    home: inputs.machinePrice + (homeRunningYearly / MONTHS_PER_YEAR) * month,
+    home: inputs.machinePrice + (homeCostYearly / MONTHS_PER_YEAR) * month,
   }))
 }
 
 /** Spend in each year of ownership; the machine is paid in year 1. */
 export function yearlySpend(inputs: CoffeeInputs): YearlyPoint[] {
-  const { cafeYearly, homeRunningYearly } = summarize(inputs)
+  const { cafeYearly, homeCostYearly } = summarize(inputs)
   return Array.from({ length: Math.round(inputs.years) }, (_, i) => ({
     year: i + 1,
     cafe: cafeYearly,
-    home: homeRunningYearly + (i === 0 ? inputs.machinePrice : 0),
+    home: homeCostYearly + (i === 0 ? inputs.machinePrice : 0),
   }))
 }
 
@@ -115,25 +114,25 @@ export function yearlySpend(inputs: CoffeeInputs): YearlyPoint[] {
  * everything spent so far divided by every cup made so far.
  */
 export function costPerCupOverTime(inputs: CoffeeInputs): CupCostPoint[] {
-  const { cupsPerYear: cups, homeRunningYearly } = summarize(inputs)
+  const { cupsPerYear: cups, homeCostYearly } = summarize(inputs)
   const months = Math.round(inputs.years * MONTHS_PER_YEAR)
   if (cups <= 0) return []
   return Array.from({ length: months }, (_, i) => {
     const month = i + 1
     const spent =
-      inputs.machinePrice + (homeRunningYearly / MONTHS_PER_YEAR) * month
+      inputs.machinePrice + (homeCostYearly / MONTHS_PER_YEAR) * month
     const madeCups = (cups / MONTHS_PER_YEAR) * month
     return { month, home: spent / madeCups, cafe: inputs.cafePrice }
   })
 }
 
-export type Verdict = 'never' | 'fast' | 'solid' | 'slow'
+export type Verdict = 'cafe-wins' | 'fast' | 'solid' | 'slow'
 
 /** A plain-language read on the result, used for copy and the mascot's mood. */
 export function verdictFor(summary: CoffeeSummary, years: number): Verdict {
   const { breakEvenMonths } = summary
   if (breakEvenMonths === null || breakEvenMonths > years * MONTHS_PER_YEAR) {
-    return 'never'
+    return 'cafe-wins'
   }
   if (breakEvenMonths <= 6) return 'fast'
   if (breakEvenMonths <= 18) return 'solid'

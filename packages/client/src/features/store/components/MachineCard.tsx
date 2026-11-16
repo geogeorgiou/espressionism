@@ -10,14 +10,14 @@ import { MachineSprite } from './MachineSprite'
 
 interface MachineCardProps {
   machine: Machine
-  /** The store's current filters, carried to the product page and back. */
+  /** The store's current filters, carried to the machine page and back. */
   search: StoreSearch
   /**
    * `grid` for the store page; `compact` is a dense row for narrow columns
    * (Robospresso's chat).
    */
   variant?: 'grid' | 'compact'
-  /** Opens the product page in a new tab, so the current page keeps its state. */
+  /** Opens the machine page in a new tab, so the current page keeps its state. */
   newTab?: boolean
 }
 

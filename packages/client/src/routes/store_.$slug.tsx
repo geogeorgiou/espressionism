@@ -5,7 +5,7 @@ import { storeSearchSchema } from '@/features/store/constants'
 import { MachineNotFound } from '@/features/store/pages/MachineNotFound'
 import { MachinePage } from '@/features/store/pages/MachinePage'
 
-// Not nested under /store: the product page replaces the grid. An unknown
+// Not nested under /store: the machine page replaces the grid. An unknown
 // slug renders the not-found screen at the same URL.
 export const Route = createFileRoute('/store_/$slug')({
   validateSearch: storeSearchSchema,

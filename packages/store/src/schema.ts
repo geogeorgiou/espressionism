@@ -5,14 +5,14 @@ export const machineSchema = z.object({
   /** URL-safe id, unique across the catalog. */
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   brand: z.string().min(1),
-  /** Full product name, brand included. */
+  /** Full machine name, brand included. */
   name: z.string().min(1),
   /** Whole euros. */
   price: z.number().int().positive(),
   currency: z.literal('EUR'),
   /** 0–5 stars, one decimal; null when nobody has rated it yet. */
   rating: z.number().min(0).max(5).nullable(),
-  /** The product's page on this site, `/store/<slug>`. */
+  /** The machine's page on this site, `/store/<slug>`. */
   url: z.string().startsWith('/store/'),
 })
 

@@ -43,13 +43,13 @@ export const showMachinesInputSchema = z
   .strict()
 
 /**
- * Draws machines as product cards under the reply. The model picks which
+ * Draws machines as machine cards under the reply. The model picks which
  * ones; every fact on a card comes from the catalog, never from the model.
  */
 export const showMachinesTool = tool({
   title: 'Show machines as cards',
   description:
-    'Show the machines you recommend as product cards in the chat, with name, price, rating and a link to the product page. Call it once with your picks after searching, instead of listing them in your text.',
+    'Show the machines you recommend as cards in the chat, with name, price, rating and a link to the machine page. Call it once with your picks after searching, instead of listing them in your text.',
   inputSchema: showMachinesInputSchema,
   execute: ({ slugs }): ShowMachinesOutput => {
     const unique = [...new Set(slugs)]
