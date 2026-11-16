@@ -22,11 +22,11 @@ const MOODS: Record<Verdict, { mug: MascotMood; togo: MascotMood }> = {
   fast: { mug: 'surprised', togo: 'sleepy' },
   solid: { mug: 'happy', togo: 'idle' },
   slow: { mug: 'idle', togo: 'wink' },
-  never: { mug: 'sleepy', togo: 'happy' },
+  'cafe-wins': { mug: 'sleepy', togo: 'happy' },
 }
 
 function headline(verdict: Verdict, summary: CoffeeSummary, years: number) {
-  if (verdict === 'never' || summary.breakEvenMonths === null) {
+  if (verdict === 'cafe-wins' || summary.breakEvenMonths === null) {
     return `The café wins over ${years} ${years === 1 ? 'year' : 'years'}.`
   }
   const when = formatDuration(summary.breakEvenMonths)

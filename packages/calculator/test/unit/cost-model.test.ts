@@ -24,7 +24,7 @@ describe('summarize', () => {
     const s = summarize(base)
     expect(s.cupsPerYear).toBe(260)
     expect(s.cafeYearly).toBe(1040)
-    expect(s.homeRunningYearly).toBe(260)
+    expect(s.homeCostYearly).toBe(260)
     expect(s.yearlySavings).toBe(780)
     // 520 / (780 / 12) = 8 months
     expect(s.breakEvenMonths).toBeCloseTo(8)
@@ -79,7 +79,7 @@ describe('verdictFor', () => {
       'slow',
     )
     expect(verdictFor(summarize({ ...base, machinePrice: 5000 }), 2)).toBe(
-      'never',
+      'cafe-wins',
     )
   })
 })

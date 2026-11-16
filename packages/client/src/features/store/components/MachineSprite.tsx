@@ -12,7 +12,7 @@ interface MachineSpriteProps {
   className?: string
 }
 
-/** A product's pixel picture. Decorative: the card carries the name. */
+/** A machine's pixel picture. Decorative: the card carries the name. */
 export function MachineSprite({ slug, className }: MachineSpriteProps) {
   const pixels = useMemo(() => buildMachineSprite(slug), [slug])
   return (

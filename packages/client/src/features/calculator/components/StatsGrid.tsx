@@ -28,7 +28,7 @@ export function StatsGrid({ summary, inputs, currency }: StatsGridProps) {
     },
     {
       label: 'Home per year',
-      value: money(summary.homeRunningYearly),
+      value: money(summary.homeCostYearly),
       detail: 'Beans, milk and upkeep, after the machine',
       tone: 'home',
     },
@@ -36,7 +36,7 @@ export function StatsGrid({ summary, inputs, currency }: StatsGridProps) {
       label: 'Break-even',
       value:
         summary.breakEvenMonths === null
-          ? 'Never'
+          ? `Not within ${inputs.years} ${inputs.years === 1 ? 'year' : 'years'}`
           : formatDuration(summary.breakEvenMonths),
       detail:
         summary.yearlySavings > 0

@@ -1,16 +1,10 @@
-import { MAX_MESSAGE_LENGTH } from '@espressionism/agent/contract'
+import { turnTextSchema } from '@espressionism/agent/contract'
 import { z } from 'zod'
 
-export { MAX_MESSAGE_LENGTH }
+export { turnTextSchema }
 
-/** The composer's form: one trimmed, non-empty question. */
-export const chatMessageSchema = z.object({
-  message: z
-    .string()
-    .trim()
-    .min(1, 'Ask me something first')
-    .max(MAX_MESSAGE_LENGTH, `Keep it under ${MAX_MESSAGE_LENGTH} characters`),
-})
+/** The composer's form: the visitor's next turn. */
+export const chatMessageSchema = z.object({ message: turnTextSchema })
 
 export type ChatFormValues = z.input<typeof chatMessageSchema>
 

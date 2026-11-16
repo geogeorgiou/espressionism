@@ -44,7 +44,7 @@ test.describe('store', () => {
   }) => {
     await page.goto('/store')
     await expect(
-      page.getByRole('heading', { level: 1, name: 'The machine shop' }),
+      page.getByRole('heading', { level: 1, name: 'The machine store' }),
     ).toBeVisible()
     await expect(
       page.getByText('Demo store: prices and ratings are made up'),
@@ -172,7 +172,7 @@ test.describe('store', () => {
     ])
   })
 
-  test('opens a product page and comes back to the same filters', async ({
+  test('opens a machine page and comes back to the same filters', async ({
     page,
   }) => {
     await page.goto('/store')
@@ -181,10 +181,10 @@ test.describe('store', () => {
 
     await page.getByRole('link', { name: /Gaggia Touch Lux/ }).click()
     await expect(page).toHaveURL(/\/store\/gaggia-touch-lux\?minRating=4$/)
-    const product = page.getByRole('article', { name: 'Gaggia Touch Lux' })
-    await expect(product).toContainText('Gaggia')
-    await expect(product).toContainText('€1,209')
-    await expect(product).toContainText('4.7')
+    const machine = page.getByRole('article', { name: 'Gaggia Touch Lux' })
+    await expect(machine).toContainText('Gaggia')
+    await expect(machine).toContainText('€1,209')
+    await expect(machine).toContainText('4.7')
 
     await page.getByRole('link', { name: 'Back to store' }).click()
     await expect(page).toHaveURL(/\/store\?minRating=4$/)
@@ -194,7 +194,7 @@ test.describe('store', () => {
     await expect(machines(page)).toHaveCount(3)
   })
 
-  test('shows a not-found screen for an unknown product', async ({ page }) => {
+  test('shows a not-found screen for an unknown machine', async ({ page }) => {
     await page.goto('/store/no-such-machine?minRating=4')
     await expect(page).toHaveURL(/\/store\/no-such-machine\?minRating=4$/)
     await expect(

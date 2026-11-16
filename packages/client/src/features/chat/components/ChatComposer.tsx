@@ -7,8 +7,8 @@ import { useAppForm } from '@/features/common/form/form'
 import {
   CHAT_DEFAULT_VALUES,
   CHAT_SUGGESTIONS,
-  MAX_MESSAGE_LENGTH,
   chatMessageSchema,
+  turnTextSchema,
 } from '../constants'
 
 interface ChatComposerProps {
@@ -70,7 +70,7 @@ export function ChatComposer({
               label="Your question"
               hideLabel
               placeholder="Your budget, your taste, your call…"
-              maxLength={MAX_MESSAGE_LENGTH}
+              maxLength={turnTextSchema.maxLength ?? undefined}
               className="min-w-0 flex-1"
             />
           )}
