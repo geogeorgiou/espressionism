@@ -1,7 +1,4 @@
-import {
-  calculatorSchema,
-  fillToolInputSchema,
-} from '@espressionism/calculator'
+import { calculatorSchema } from '@espressionism/calculator'
 import { z } from 'zod'
 
 // The calculator's core lives in `@espressionism/calculator`, shared with
@@ -33,6 +30,3 @@ export const calculatorSearchSchema = z.object(
 )
 
 export type CalculatorSearch = z.infer<typeof calculatorSearchSchema>
-
-/** JSON Schema for the WebMCP `fill_calculator` tool, derived from Zod. */
-export const AGENT_FILL_INPUT_SCHEMA = z.toJSONSchema(fillToolInputSchema)

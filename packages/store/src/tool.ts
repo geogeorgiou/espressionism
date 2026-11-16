@@ -1,9 +1,11 @@
 /**
- * The store search tool, defined once. Robospresso's model reaches it
- * through the AI SDK (`packages/agent`), a visitor's in-browser agent
- * through WebMCP (the client's store page). Both adapters hand the raw
- * input to `runStoreSearch`, so they validate and answer the same way.
+ * The store search tool, defined once with `defineTool`. Robospresso's
+ * model reaches it through the AI SDK (`packages/agent`), a visitor's
+ * in-browser agent through WebMCP (the client's store page); both run
+ * `searchTool.run`, so they validate and answer the same way.
  */
+import { defineTool, toolFailure } from '@espressionism/tool'
+import type { ToolOutput } from '@espressionism/tool'
 import { z } from 'zod'
 
 import {
@@ -20,19 +22,12 @@ export const MAX_SEARCH_LIMIT = 10
 /** How many machines a search returns when the agent doesn't say. */
 export const DEFAULT_SEARCH_LIMIT = 5
 
-export const SEARCH_TOOL = {
-  name: 'search_espresso_machines',
-  title: 'Search the espresso machine store',
-  description:
-    'Search the Espressionism demo store for espresso machines by price (EUR) and star rating, sorted best rated first unless asked otherwise. Returns each match with its name, brand, price, rating and product page url. Only machines from this store exist; send only the filters the user asked for.',
-} as const
-
 /**
  * What agents see as the tool's input. Plain checks only (each maps to JSON
  * Schema) with the description last in each chain; the min ≤ max rule
- * lives in `storeFiltersSchema`, which `runStoreSearch` applies next.
+ * lives in `storeFiltersSchema`, which the tool applies next.
  */
-export const searchToolInputSchema = z
+const searchToolInputSchema = z
   .object({
     minPrice: z
       .number()
@@ -82,51 +77,30 @@ export const searchResultSchema = z.object({
 
 export type SearchResult = z.infer<typeof searchResultSchema>
 
-export interface SearchToolError {
-  /** Field name, or "input" when the problem isn't tied to one field. */
-  field: string
-  message: string
-}
-
-export type SearchToolResult =
-  | ({ ok: true } & SearchResult)
-  | { ok: false; errors: SearchToolError[] }
-
-function toErrors(issues: readonly { path: PropertyKey[]; message: string }[]) {
-  return issues.map((issue) => ({
-    field: issue.path.length > 0 ? issue.path.map(String).join('.') : 'input',
-    message: issue.message,
-  }))
-}
-
 /**
- * Runs the tool on untrusted input. Invalid input returns the errors rather
- * than throwing, so a model can fix its call and try again.
+ * `search_espresso_machines`. `ctx.machines` swaps the catalog (tests);
+ * hosts leave it out.
  */
-export function runStoreSearch(
-  input: unknown,
-  machines?: readonly Machine[],
-): SearchToolResult {
-  const parsed = searchToolInputSchema.safeParse(input ?? {})
-  if (!parsed.success) {
-    return { ok: false, errors: toErrors(parsed.error.issues) }
-  }
-  const {
-    sort = DEFAULT_SORT,
-    limit = DEFAULT_SEARCH_LIMIT,
-    ...rest
-  } = parsed.data
-  const filters = storeFiltersSchema.safeParse(rest)
-  if (!filters.success) {
-    return { ok: false, errors: toErrors(filters.error.issues) }
-  }
-  const matches = searchMachines({ ...filters.data, sort }, machines)
-  return {
-    ok: true,
-    source: 'espressionism-store',
-    filters: filters.data,
-    sort,
-    total: matches.length,
-    items: matches.slice(0, limit),
-  }
-}
+export const searchTool = defineTool({
+  name: 'search_espresso_machines',
+  title: 'Search the espresso machine store',
+  description:
+    'Search the Espressionism demo store for espresso machines by price (EUR) and star rating, sorted best rated first unless asked otherwise. Returns each match with its name, brand, price, rating and product page url. Only machines from this store exist; send only the filters the user asked for.',
+  input: searchToolInputSchema,
+  output: searchResultSchema,
+  run: (input, ctx: { machines?: readonly Machine[] } | undefined) => {
+    const { sort = DEFAULT_SORT, limit = DEFAULT_SEARCH_LIMIT, ...rest } = input
+    const filters = storeFiltersSchema.safeParse(rest)
+    if (!filters.success) return toolFailure(filters.error.issues)
+    const matches = searchMachines({ ...filters.data, sort }, ctx?.machines)
+    return {
+      source: 'espressionism-store' as const,
+      filters: filters.data,
+      sort,
+      total: matches.length,
+      items: matches.slice(0, limit),
+    }
+  },
+})
+
+export type SearchToolResult = ToolOutput<typeof searchTool>

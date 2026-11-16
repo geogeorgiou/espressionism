@@ -125,7 +125,7 @@ Four layers, each with one job:
 | Layer                      | Where                                                         | What it produces                                                                                                                                                                                                                          |
 | -------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Model**                  | Gemini                                                        | Decides to call `show_machines({ slugs: ['gaggia-…', '…'] })`. It only names machines; it never writes a price.                                                                                                                           |
-| **Tool**                   | `packages/agent/src/tools.ts`                                 | Runs the call on the server: looks each slug up in the catalog and returns `{ ok: true, items: [Machine…] }`, or `{ ok: false, errors }` for an unknown slug (the model sees the errors and retries).                                     |
+| **Tool**                   | `packages/agent/src/display-tools.ts`                         | Runs the call on the server: looks each slug up in the catalog and returns `{ ok: true, items: [Machine…] }`, or `{ ok: false, errors }` for an unknown slug (the model sees the errors and retries).                                     |
 | **Stream → message parts** | AI SDK (`streamText` on the server, `useChat` in the browser) | Streams the call as chunks (`tool-input-available`, then `tool-output-available`). `useChat` folds them into one part on the message: `{ type: 'tool-show_machines', state, input, output }`. The `state` moves forward as chunks arrive. |
 | **Part → view → JSX**      | `features/chat/utils/parts.ts`, `components/MessageParts.tsx` | `toPartView(part)` (pure) reads the part's `type` and `state`, parses the output with the contract's Zod schema and returns a view, or `null` to draw nothing. `MessageParts` looks the view's `kind` up in `RENDERERS` and renders it.   |
 
@@ -145,7 +145,7 @@ So one `show_machines` call shows on screen as skeletons first, then the same sp
 
 To add a new kind of answer, such as a comparison table:
 
-1. **Agent:** add a `compare_machines` tool in `tools.ts` with a flat, `.strict()` input, and put its output schema in `contract.ts` (plus its entry in `RobospressoTools`).
+1. **Agent:** define a `compare_machines` tool with `defineTool` in `display-tools.ts` (flat, `.strict()` input), add `aiTool(compareMachinesTool)` to `replyTools` in `tools.ts`, and re-export its `outputSchema` from `contract.ts` (plus its entry in `RobospressoToolDefs`).
 2. **Instructions:** tell the model when to call it (`instructions.ts`).
 3. **Client:** add a `case 'tool-compare_machines'` to `toPartView` that returns a new view kind, and a renderer for that kind in `RENDERERS`. TypeScript rejects a view kind without a renderer.
 
@@ -214,6 +214,7 @@ packages/
   agent/           chat handler, session memory, Gemini reply, tools, HTTP contract
   calculator/      calculator schema, pure cost model + fill tool, shared by UI and agent
   store/           demo catalog + pure filter/sort, shared by UI and agent
+  tool/            defineTool: one definition per agent tool, adapted for the AI SDK and WebMCP
 docs/
   assets/          README images
 ```

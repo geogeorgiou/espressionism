@@ -6,7 +6,6 @@ export type { CalculatorValues } from './schema'
 export { DEFAULT_INPUTS, calculatorSchema } from './schema'
 export type { Analysis } from './analyze'
 export { analyze } from './analyze'
-export { fill } from './fill'
 export type {
   CoffeeInputs,
   CoffeeSummary,
@@ -17,8 +16,4 @@ export type {
 } from './cost-model'
 export { costPerCupOverTime, cumulativeCosts, yearlySpend } from './cost-model'
 export type { FillToolInput, FillToolOutput } from './tool'
-export {
-  CALCULATOR_TOOL,
-  fillToolInputSchema,
-  fillToolOutputSchema,
-} from './tool'
+export { fillTool } from './tool'

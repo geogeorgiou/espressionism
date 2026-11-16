@@ -1,3 +1,4 @@
+import type { AnyToolDef, ToolContext, ToolOutput } from '@espressionism/tool'
 import { useEffect, useRef } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -13,16 +14,67 @@ import { getModelContext, summarizeStatuses } from '../utils/model-context'
  */
 const activeRegistrations = new Map<string, AbortController>()
 
+type Success<D extends AnyToolDef> = Extract<ToolOutput<D>, { ok: true }>
+
+export type WebMcpToolOptions<D extends AnyToolDef> = {
+  /** Part of the tool's identity: keep it a module constant. */
+  annotations?: WebMCP.ToolAnnotations
+  /** After a successful call, before the agent gets the answer. */
+  onResult?: (result: Success<D>) => void
+} & (undefined extends ToolContext<D>
+  ? { context?: () => ToolContext<D> }
+  : {
+      /** Read on every call, e.g. the form's current values. */
+      context: () => ToolContext<D>
+    })
+
+/**
+ * A tool definition (`defineTool`) as a WebMCP tool, registered while the
+ * calling component is mounted. Every call runs `def.run` with the current
+ * `context()`; a successful one goes to `onResult` (to update the page) and
+ * is recorded for `useToolInvokedAt`. The agent gets `def.run`'s answer as
+ * it is, failures included. Returns the tool's status.
+ */
+export function useWebMcpTool<D extends AnyToolDef>(
+  def: D,
+  options: WebMcpToolOptions<D>,
+): WebMcpStatus {
+  const { annotations, onResult, context } = options as {
+    annotations?: WebMCP.ToolAnnotations
+    onResult?: (result: Success<D>) => void
+    context?: () => unknown
+  }
+  const run = def.run as (raw: unknown, ctx?: unknown) => ToolOutput<D>
+  return useModelContextTool({
+    name: def.name,
+    title: def.title,
+    description: def.description,
+    inputSchema: def.jsonSchema,
+    annotations,
+    execute: (input) => {
+      const result = run(input, context?.())
+      if (result.ok) {
+        onResult?.(result as Success<D>)
+        useWebMcpStore.getState().recordInvocation(def.name)
+      }
+      return result
+    },
+  })
+}
+
 /**
  * Registers a WebMCP tool with `document.modelContext` while the calling
- * component is mounted, and returns its status. The status is also kept in
+ * component is mounted, and returns its status. `useWebMcpTool` builds on
+ * it; use this directly only for a tool without a definition. The status is also kept in
  * `useWebMcpStore`, so the banner (or anything else) can show it.
  *
  * `execute` may change every render (it's read through a ref). The rest of
  * the definition is the tool's identity: keep `inputSchema` and
  * `annotations` stable (module constants), since changing them re-registers.
  */
-export function useWebMcpTool(tool: WebMCP.ModelContextTool): WebMcpStatus {
+export function useModelContextTool(
+  tool: WebMCP.ModelContextTool,
+): WebMcpStatus {
   const executeRef = useRef(tool.execute)
   useEffect(() => {
     executeRef.current = tool.execute

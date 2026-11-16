@@ -1,4 +1,4 @@
-import { DEFAULT_INPUTS, fill } from '@espressionism/calculator'
+import { DEFAULT_INPUTS, fillTool } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import { createUIMessageStream } from 'ai'
 import type { UIMessageChunk } from 'ai'
@@ -165,7 +165,7 @@ describe('createChatHandler', () => {
 
   it('remembers what it filled in the calculator', async () => {
     const store = createInMemoryStore()
-    const output = fill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    const output = fillTool.run({ cupsPerDay: 2 }, { current: DEFAULT_INPUTS })
     const handler = createChatHandler({
       store,
       reply: () =>

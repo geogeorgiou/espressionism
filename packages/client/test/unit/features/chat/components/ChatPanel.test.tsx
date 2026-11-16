@@ -1,5 +1,5 @@
 import type { ChatRequest } from '@espressionism/agent/contract'
-import { DEFAULT_INPUTS, fill } from '@espressionism/calculator'
+import { DEFAULT_INPUTS, fillTool } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import {
   RouterProvider,
@@ -409,7 +409,7 @@ describe('ChatPanel', () => {
 
   it('fills the calculator once and shows what it found', async () => {
     const user = userEvent.setup()
-    const output = fill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    const output = fillTool.run({ cupsPerDay: 2 }, { current: DEFAULT_INPUTS })
     const apply = vi.fn()
     renderChat(
       fakeAgent(

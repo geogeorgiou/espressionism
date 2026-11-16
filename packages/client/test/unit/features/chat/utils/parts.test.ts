@@ -1,5 +1,5 @@
 import type { RobospressoMessage } from '@espressionism/agent/contract'
-import { DEFAULT_INPUTS, fill } from '@espressionism/calculator'
+import { DEFAULT_INPUTS, fillTool } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import { describe, expect, it } from 'vite-plus/test'
 
@@ -75,14 +75,13 @@ describe('toPartView', () => {
   })
 
   it('draws cards from a valid output only', () => {
-    const part = (output: unknown): Part =>
-      ({
-        type: 'tool-show_machines',
-        toolCallId: 'c1',
-        state: 'output-available',
-        input: { slugs: [machine.slug] },
-        output,
-      }) as Part
+    const part = (output: unknown): Part => ({
+      type: 'tool-show_machines',
+      toolCallId: 'c1',
+      state: 'output-available',
+      input: { slugs: [machine.slug] },
+      output: output as never,
+    })
     expect(toPartView(part({ ok: true, items: [machine] }))).toEqual({
       kind: 'cards',
       machines: [machine],
@@ -106,7 +105,7 @@ describe('toPartView', () => {
   })
 
   it('draws the calculator card from a successful fill only', () => {
-    const output = fill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    const output = fillTool.run({ cupsPerDay: 2 }, { current: DEFAULT_INPUTS })
     expect(toPartView(fillPart(output))).toEqual({
       kind: 'calculator',
       message: output.ok ? output.message : '',

@@ -1,7 +1,6 @@
-import { SEARCH_TOOL, searchToolInputSchema } from '@espressionism/store'
+import { searchTool } from '@espressionism/store'
 import { renderHook, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
-import { z } from 'zod'
 
 import { useStoreSearchTool } from '@/features/store/hooks/use-store-search-tool'
 import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
@@ -14,7 +13,7 @@ async function registered(setFilters = vi.fn()) {
   const stub = stubModelContext()
   const { result } = renderHook(() => useStoreSearchTool({ setFilters }))
   await waitFor(() => expect(result.current).toBe('available'))
-  const tool = stub.tools.get(SEARCH_TOOL.name)
+  const tool = stub.tools.get(searchTool.name)
   if (!tool) throw new Error('tool not registered')
   return { stub, tool, setFilters }
 }
@@ -28,8 +27,8 @@ describe('useStoreSearchTool', () => {
   it('registers the shared definition and JSON Schema', async () => {
     const { stub, tool } = await registered()
     try {
-      expect(tool.description).toBe(SEARCH_TOOL.description)
-      expect(tool.inputSchema).toEqual(z.toJSONSchema(searchToolInputSchema))
+      expect(tool.description).toBe(searchTool.description)
+      expect(tool.inputSchema).toBe(searchTool.jsonSchema)
       expect(tool.annotations?.readOnlyHint).toBe(true)
     } finally {
       stub.restore()
@@ -53,9 +52,7 @@ describe('useStoreSearchTool', () => {
         minRating: '4',
         sort: 'price_asc',
       })
-      expect(
-        useWebMcpStore.getState().invokedAt[SEARCH_TOOL.name],
-      ).toBeDefined()
+      expect(useWebMcpStore.getState().invokedAt[searchTool.name]).toBeDefined()
     } finally {
       stub.restore()
     }

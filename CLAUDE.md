@@ -10,6 +10,7 @@ packages/
   calculator/  — @espressionism/calculator: the calculator's schema, pure cost model + fill tool
   client/      — TanStack Start frontend (SPA mode)
   store/       — @espressionism/store: the demo store's catalog + pure search
+  tool/        — @espressionism/tool: defineTool, one definition per agent tool
 ```
 
 The layout mirrors `fullstack-app-starter`. Vercel serves the client's static build and runs `api/*.ts` as functions; see [Agent](#agent-packagesagent).
@@ -63,12 +64,13 @@ Everything behind the chat lives here, with no framework: `createChatHandler(con
 
 ```
 src/
-├── contract.ts      — Zod HTTP contract (request, session part, error, display tool outputs, RobospressoMessage type)
+├── contract.ts      — Zod HTTP contract (request, session part, error, display tool outputs, RobospressoMessage type derived from the tool definitions)
+├── display-tools.ts — show_machines, show_store_link (defineTool; browser-safe, the contract re-exports their output schemas)
 ├── handler.ts       — createChatHandler: POST only, 4 KB cap, validation, sessions, records answers, no leaked errors
 ├── memory.ts        — ConversationStore, createInMemoryStore (LRU + idle TTL, snapshot()), selectWindow
 ├── config.ts        — agentConfigFromEnv: key + model id → AgentConfig (no key → placeholder)
 ├── reply.ts         — createStoreReply({ model, limits }): streamText + the tools → UI message stream
-├── tools.ts         — AI SDK tools: the store's shared search, show_machines, show_store_link, fill_calculator (replyTools)
+├── tools.ts         — aiTool(def, ctx), the AI SDK adapter; replyTools: every tool for one answer
 ├── stream.ts        — ReplyStream, textReply, the generic error and its logging
 ├── instructions.ts  — Robospresso's system instructions, off-topic and empty replies
 ├── persona.ts       — Robospresso's placeholder reply (streamed)
@@ -78,7 +80,7 @@ test/unit/       — handler, reply, memory and window tests (Vitest, node envir
 
 - **Model: Gemini, direct.** `@ai-sdk/google` with a Google AI Studio key; no AI Gateway. `createStoreReply` takes a model _object_ (`StoreModel` excludes strings): a bare `'creator/model'` string would route through the AI Gateway, the AI SDK's default global provider.
 - **Env is injected.** The agent never reads `process.env`. Hosts pass their env to `agentConfigFromEnv`: `api/chat.ts` passes `process.env`, the Vite plugin passes `loadEnv(mode, envDir, '')`. Variables: `GOOGLE_GENERATIVE_AI_API_KEY` (a Vercel **Secret**; locally `packages/client/.env`, see `.env.example`) and optional `GEMINI_MODEL` (default `DEFAULT_GEMINI_MODEL`). Never give them a `VITE_` prefix.
-- **Display tools (generative UI).** The model chooses _what_ to show, the client owns _how_. `show_machines({ slugs })` and `show_store_link(filters)` return catalog data (`{ ok: true, … }`) or `{ ok: false, errors }` for unknown slugs and bad filters, so the model can retry; their output schemas live in `contract.ts` and the client parses them before drawing. `fill_calculator(fields)` runs the shared `fill` on the values the page sent (`ReplyOptions.calculator`, else `DEFAULT_INPUTS`), so it's built per answer (`replyTools`); the browser applies each successful output to the form once per `toolCallId`. Input that breaks a tool's schema never reaches `execute`: the AI SDK hands the model an `error-text` result instead. A new kind of card = a display tool here (flat, `.strict()` input), its output schema in the contract, a view in the client's `toPartView` and a renderer in `MessageParts`. Display tools are for Robospresso only, never WebMCP.
+- **Display tools (generative UI).** The model chooses _what_ to show, the client owns _how_. `show_machines({ slugs })` and `show_store_link(filters)` (`display-tools.ts`) return catalog data (`{ ok: true, … }`) or `{ ok: false, errors }` for unknown slugs and bad filters, so the model can retry; `contract.ts` re-exports their `outputSchema`s and the client parses them before drawing. `fill_calculator(fields)` runs the calculator's `fillTool` on the values the page sent (`ReplyOptions.calculator`, else `DEFAULT_INPUTS`), so it's built per answer (`replyTools`); the browser applies each successful output to the form once per `toolCallId`. Input that breaks a tool's schema never reaches `execute`: the AI SDK hands the model an `error-text` result instead. A new kind of card = a `defineTool` in `display-tools.ts`, an `aiTool` line in `replyTools`, its `outputSchema` and its entry in `RobospressoToolDefs` in the contract, a view in the client's `toPartView` and a renderer in `MessageParts`. Display tools are for Robospresso only, never WebMCP.
 - **Memory (server-held sessions).** The handler owns the conversation; the client sends only the new question plus the session id it read from the last reply.
   - Every reply opens with a **transient** `data-session { id, restarted }` part (reaches `useChat`'s `onData`, never `message.parts`). An unknown or expired id starts a new session with `restarted: true` (logged as `chat: session restarted`, no content); a malformed id is a 400; a second question while the session is answering is a 409.
   - Turns are text only (`chatTurnSchema`). The handler records the user turn up front and the assistant turn in `createUIMessageStream`'s `onEnd`, **only on `outcome.status === 'completed'`**. Replies report failure in-band, so the handler reads the reply's chunks and declares the outcome itself (`writer.setOutcome`): `merge()` doesn't carry an outcome, and error chunks never reach `responseMessage`. The assistant turn gets server-written notes, `[Cards shown: …]` and `[Calculator filled: …]`, so follow-ups can refer back.
@@ -91,7 +93,7 @@ test/unit/       — handler, reply, memory and window tests (Vitest, node envir
 - **Hosts.** On Vercel, `api/chat.ts` exports `POST` and calls the handler; the root `pnpm build` builds the agent before Vercel bundles the function, and the `vercel.json` rewrite skips `/api/`. Locally, `packages/client/vite/agent-api.ts` serves the same handler at `/api/chat`: `pnpm dev` loads the agent's source through Vite (no build needed), `vp preview` (and so the e2e tests) imports the built package. The client's `build` task depends on the agent's build for that reason.
 - **`api/` is plain Node ESM.** Vercel compiles each `api/*.ts` to `.js` without bundling, and Node loads it as ESM only because the root `package.json` has `"type": "module"`: keep it. Each function is a single file that imports only `@espressionism/agent` (plain ESM would need `.js` on relative imports, against the extensionless rule); shared code goes in the agent.
 - **One handler per process.** Create the handler once (module scope), not per request: it holds the sessions. In `pnpm dev` the Vite plugin makes one per loaded agent module, so editing the agent resets memory, and it serves the dev-only `GET /api/chat/memory` (`store.snapshot()`: sizes in LRU order, no turn text) for the page's "Memory (dev)" section. Preview and Vercel never serve that route.
-- **Shared packages.** The contract builds on `@espressionism/store` (`machineSchema`) and `@espressionism/calculator` (`calculatorSchema`, `fillToolOutputSchema`). Both are **dev** dependencies on purpose: `vp pack` inlines dev dependencies, so the Vercel Function never loads their TypeScript at runtime.
+- **Shared packages.** The contract builds on `@espressionism/store` (`machineSchema`, `searchTool`), `@espressionism/calculator` (`calculatorSchema`, `fillTool`) and `@espressionism/tool`. All three are **dev** dependencies on purpose: `vp pack` inlines dev dependencies, so the Vercel Function never loads their TypeScript at runtime.
 - **Contract changes** go in `contract.ts` with a matching handler or reply test; the client builds the body with `chatRequest` (`utils/messages.ts`) and parses display tool outputs and the session part with the contract's schemas.
 
 ## Calculator (`packages/calculator/`)
@@ -105,16 +107,15 @@ src/
 ├── schema.ts     — calculatorSchema, CalculatorValues, DEFAULT_INPUTS
 ├── cost-model.ts — pure money math over CoffeeInputs: summarize, verdictFor (internal), chart series (public)
 ├── analyze.ts    — analyze(values) → { summary, verdict, message }
-├── fill.ts       — fill(current, input): merge, validate, analyze
-├── tool.ts       — fill_calculator, defined once: CALCULATOR_TOOL, fillToolInputSchema, fillToolOutputSchema
+├── tool.ts       — fillTool (`fill_calculator`, defineTool): merge onto ctx.current, validate, analyze
 └── index.ts
-test/unit/        — cost model, analyze, fill (Vitest, node environment)
+test/unit/        — cost model, analyze, tool (Vitest, node environment)
 ```
 
-- **Two functions to learn.** Results go through `analyze(values)`, fills through `fill(current, input)`; `summarize` and `verdictFor` stay internal. `CalculatorValues` satisfies `CoffeeInputs`, so the chart series take the form values as they are.
+- **Two names to learn.** Results go through `analyze(values)`, fills through `fillTool.run(input, { current })`; `summarize` and `verdictFor` stay internal. `CalculatorValues` satisfies `CoffeeInputs`, so the chart series take the form values as they are.
 - **Money math is pure and tested.** Every change to `cost-model.ts` needs a matching test in `test/unit/cost-model.test.ts`.
 - **Rules live here once; boundaries derive their policy.** The form shows `calculatorSchema`'s messages, the URL drops bad params (`calculatorSearchSchema` maps the shared shape with `.optional().catch(undefined)`), agents get `{ ok: false, errors }`, the server returns 400. Never restate a bound elsewhere; the client's URL test checks, field by field, that the URL accepts exactly what the shared rules accept.
-- **One tool, two adapters**, as in the store: `fill(current, input)` never throws and returns `{ ok: true, changes, values, summary, verdict, message }` or `{ ok: false, errors }`. The agent's tool (`tools.ts`) and the page's WebMCP tool only adapt it.
+- **One tool, two adapters**, as in the store: `fillTool.run` never throws and returns `{ ok: true, changes, values, summary, verdict, message }` or `{ ok: false, errors }`. The agent (`aiTool`) and the page (`useWebMcpTool`) only adapt it.
 
 ## Store (`packages/store/`)
 
@@ -126,12 +127,12 @@ src/
 ├── catalog.ts   — CATALOG, parsed with machineSchema on load
 ├── schema.ts    — machineSchema, STORE_SORTS, DEFAULT_SORT, storeFiltersSchema
 ├── search.ts    — searchMachines, findMachine, priceRange (pure)
-├── tool.ts      — the store search tool, defined once: SEARCH_TOOL, searchToolInputSchema, runStoreSearch, searchResultSchema
+├── tool.ts      — searchTool (`search_espresso_machines`, defineTool), searchResultSchema
 └── index.ts
 test/unit/       — catalog invariants + search (Vitest, node environment)
 ```
 
-- **One tool, two adapters.** `search_espresso_machines` lives in `tool.ts`: name and description, a flat Zod input (plain checks, `.meta({ description })` last, `.strict()`), and `runStoreSearch(input)`, which validates untrusted input, applies `storeFiltersSchema` (the min ≤ max rule JSON Schema can't carry) and returns `{ ok: true, ...SearchResult }` or `{ ok: false, errors }` without throwing. The agent's AI SDK tool (`packages/agent/src/tools.ts`) and the store page's WebMCP tool (`use-store-search-tool.ts`) only adapt it; keep validation and search logic out of them.
+- **One tool, two adapters.** `searchTool` in `tool.ts` is a `defineTool` with a flat Zod input (plain checks, `.meta({ description })` last, `.strict()`); its `run` applies `storeFiltersSchema` (the min ≤ max rule JSON Schema can't carry) and returns `toolFailure(issues)` when it fails. `searchTool.run(input, { machines? })` returns `{ ok: true, ...SearchResult }` or `{ ok: false, errors }` without throwing. The agent (`aiTool`) and the store page (`useWebMcpTool`) only adapt it; keep validation and search logic out of them.
 - **Sorting.** `rating_desc` (default; unrated last), `price_asc`, `price_desc`; ties by name. Price bounds are inclusive; `minRating` hides unrated machines.
 - **Catalog rules** are pinned by `catalog.test.ts`: ten machines, unique slugs, `url` = `/store/<slug>`, prices €149–1,499, ratings 2.8–4.9 (one decimal), exactly one unrated machine, at least two cheaper machines that out-rate pricier ones. Hand edits to `catalog.json` must keep them, and the client's e2e specs assert exact orders, so update `test/e2e/store.spec.ts` with it.
 
@@ -169,7 +170,7 @@ src/
 │   │   └── utils/       — sprite (text sprites, faces, flavors), robot-sprite
 │   ├── webmcp/
 │   │   ├── components/  — WebMcpBanner (status strip above both headers)
-│   │   ├── hooks/       — useWebMcpTool, useWebMcpSummary, useToolInvokedAt
+│   │   ├── hooks/       — useWebMcpTool (definition adapter), useModelContextTool, useWebMcpSummary, useToolInvokedAt
 │   │   ├── stores/      — useWebMcpStore (zustand: tool statuses, last calls)
 │   │   └── utils/       — getModelContext, summarizeStatuses
 │   ├── theme/
@@ -219,13 +220,13 @@ Always use **TanStack Form** through the app hook in `features/common/form/form.
 
 The page offers tools to in-browser AI agents through [WebMCP](https://webmachinelearning.github.io/webmcp/) (`document.modelContext`; types from `webmcp-types`, listed in `tsconfig.json` `types`).
 
-- Register a tool with `useWebMcpTool(tool)`: it calls `document.modelContext.registerTool` while the component is mounted, unregisters by aborting the tool's `signal` (there is no `unregisterTool`), and returns its status: `checking`, `available`, `unavailable` (no WebMCP) or `error` (the browser refused it).
+- Register a tool definition with `useWebMcpTool(def, { annotations, context, onResult })`: each call runs `def.run(input, context())`, hands a successful result to `onResult` (to update the page), records the call for `useToolInvokedAt` and returns `def.run`'s answer as it is. `context` is required when the tool needs one. Underneath, `useModelContextTool(tool)` calls `document.modelContext.registerTool` while the component is mounted, unregisters by aborting the tool's `signal` (there is no `unregisterTool`), and returns its status: `checking`, `available`, `unavailable` (no WebMCP) or `error` (the browser refused it).
 - A module-level map keeps one live registration per tool name: a newer mount (Strict Mode's second effect run, HMR) aborts the older one first, so the browser never sees a duplicate name. Aborting a pending registration rejects it with the abort reason; that's ignored, only real refusals warn and set `error`.
 - Statuses live in a zustand store (`features/webmcp/stores/webmcp-store.ts`) so anything can show them. `useWebMcpSummary()` sums them up for the page (`summarizeStatuses`); `WebMcpBanner` renders it, with the status on `data-status`.
-- `execute` is read through a ref, but `inputSchema` and `annotations` are the tool's identity: keep them module constants, or the tool re-registers every render.
-- Derive `inputSchema` from Zod with `z.toJSONSchema`. Put agent-facing descriptions on the schema with `.meta({ description })` as the **last** call in each chain, and prefer checks that map to JSON Schema (`.gt`, `.int`, `.max`) over `.refine`, which `toJSONSchema` drops.
-- `search_espresso_machines` (`store/hooks/use-store-search-tool.ts`, mounted by `StorePage`) registers the store's shared tool with `SEARCH_TOOL_INPUT_SCHEMA` (`z.toJSONSchema` of `searchToolInputSchema`). A valid search replaces every filter on the form (`agentSearchToForm`; a rating between the select's steps shows the next one down) so the URL sync runs, and returns the result; invalid input changes nothing and returns the errors.
-- `fill_calculator` (`calculator/hooks/use-calculator-tool.ts`) adapts the package's `fill` (any subset of fields, merged onto the form values), sets each changed field with `form.setFieldValue` so validation and the URL sync run as if typed, and returns the result (values, summary, verdict, message; `changes` stripped) or `{ ok: false, errors }`. Robospresso's fills go through the same path (`CalculatorPage`'s handle). A successful call makes the verdict mascots hop and shows "Filled by your agent". `useCalculatorTool` returns the tool's status.
+- `execute` is read through a ref, but `inputSchema` and `annotations` are the tool's identity: keep `annotations` a module constant, or the tool re-registers every render (`def.jsonSchema` is built once, so it's stable).
+- `defineTool` derives the JSON Schema from the Zod input. Put agent-facing descriptions on the schema with `.meta({ description })` as the **last** call in each chain, and prefer checks that map to JSON Schema (`.gt`, `.int`, `.max`) over `.refine`, which `toJSONSchema` drops.
+- `search_espresso_machines` (`store/hooks/use-store-search-tool.ts`, mounted by `StorePage`) registers the store's `searchTool`. A valid search replaces every filter on the form (`agentSearchToForm`; a rating between the select's steps shows the next one down) so the URL sync runs, and returns the result; invalid input changes nothing and returns the errors.
+- `fill_calculator` (`calculator/hooks/use-calculator-tool.ts`) registers the package's `fillTool` (any subset of fields, merged onto the form values), sets each changed field with `form.setFieldValue` so validation and the URL sync run as if typed, and returns the result (changes, values, summary, verdict, message) or `{ ok: false, errors }`. Robospresso's fills go through the same path (`CalculatorPage`'s handle). A successful call makes the verdict mascots hop and shows "Filled by your agent". `useCalculatorTool` returns the tool's status.
 - Unit tests stub `document.modelContext` with `stubModelContext` from `test/unit/features/webmcp/model-context.ts` (spec-like: duplicate names reject; restore it in `finally`/`afterEach`, and reset the store with `resetWebMcpStore`). Playwright's Chromium has no WebMCP, so `test/e2e/webmcp.spec.ts` stubs it with `addInitScript` and calls the captured tool's `execute`.
 
 ### Charts: react-charts (TanStack Charts)
