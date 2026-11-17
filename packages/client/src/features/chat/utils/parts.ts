@@ -1,18 +1,9 @@
-import type {
-  Machine,
-  RobospressoMessage,
-  SearchResult,
-} from '@espressionism/agent/contract'
+import type { Machine, RobospressoMessage } from '@espressionism/agent/contract'
 import { readDisplayPart } from '@espressionism/agent/contract'
 import type { ChatStatus } from 'ai'
 
 import type { StoreSearch } from '@/features/store/constants'
-import { storeFormSchema } from '@/features/store/constants'
-import {
-  agentSearchToForm,
-  compactSearch,
-  formToSearch,
-} from '@/features/store/utils/query'
+import { storeLink } from '@/features/store/utils/store-link'
 
 type Part = RobospressoMessage['parts'][number]
 
@@ -43,7 +34,7 @@ export function toPartView(part: Part): PartView | null {
     case 'show_store_link':
       return {
         kind: 'store-link',
-        search: storeLinkSearch(display),
+        search: storeLink(display),
         total: display.total,
       }
     case 'fill_calculator':
@@ -65,18 +56,6 @@ export function messageViews(message: RobospressoMessage): KeyedPartView[] {
     const key = 'toolCallId' in part ? part.toolCallId : `${part.type}-${index}`
     return [{ ...view, key }]
   })
-}
-
-/**
- * The agent's filters → `/store` search params, through the same mapping
- * the store's WebMCP tool uses (a rating between the select's steps shows
- * the next one down), minus the defaults.
- */
-export function storeLinkSearch(
-  link: Pick<SearchResult, 'filters' | 'sort'>,
-): StoreSearch {
-  const form = storeFormSchema.parse(agentSearchToForm(link))
-  return compactSearch(formToSearch(form))
 }
 
 /**

@@ -1,72 +1,15 @@
-import { CATALOG, searchMachines } from '@espressionism/store'
-import { useSelector } from '@tanstack/react-form'
-import { useNavigate } from '@tanstack/react-router'
+import { CATALOG } from '@espressionism/store'
 
 import { Button } from '@/components/ui/button'
-import { useAppForm } from '@/features/common/form/form'
-import { Route } from '@/routes/store'
 
 import { MachineCard } from '../components/MachineCard'
 import { StoreFilters } from '../components/StoreFilters'
-import type { StoreFormValues, StoreSearch } from '../constants'
-import { EMPTY_FILTERS, STORE_DISCLAIMER, storeFormSchema } from '../constants'
-import { useStoreSearchTool } from '../hooks/use-store-search-tool'
-import { storeFormOptions } from '../utils/form-options'
+import { STORE_DISCLAIMER } from '../constants'
+import { useStoreFilters, useStoreUrl } from '../hooks/use-store-filters'
 import { formatCount } from '../utils/format'
-import {
-  compactSearch,
-  formToSearch,
-  searchToForm,
-  searchToQuery,
-} from '../utils/query'
 
 export function StorePage() {
-  const search = Route.useSearch()
-  const navigate = useNavigate({ from: Route.fullPath })
-
-  const syncUrl = (next: StoreSearch) =>
-    navigate({
-      search: compactSearch(next),
-      replace: true,
-      resetScroll: false,
-    })
-
-  const form = useAppForm({
-    ...storeFormOptions,
-    defaultValues: searchToForm(search),
-    listeners: {
-      // Keep the URL in sync so a filtered view can be shared or reloaded.
-      onChangeDebounceMs: 300,
-      onChange: ({ formApi }) => {
-        const parsed = storeFormSchema.safeParse(formApi.state.values)
-        if (parsed.success) void syncUrl(formToSearch(parsed.data))
-      },
-    },
-  })
-
-  // Results follow the last valid filters: while a price is half-typed or the
-  // range is upside down, fall back to what's in the URL.
-  const values = useSelector(form.store, (state) => state.values)
-  const parsed = storeFormSchema.safeParse(values)
-  const committed = compactSearch(
-    parsed.success ? formToSearch(parsed.data) : search,
-  )
-  const machines = searchMachines(searchToQuery(committed))
-
-  // A visitor's agent searches through WebMCP; each field is set as if
-  // picked by hand, so validation and the URL sync run as usual.
-  useStoreSearchTool({
-    setFilters: (next: StoreFormValues) => {
-      for (const name of Object.keys(next) as (keyof StoreFormValues)[]) {
-        form.setFieldValue(name, next[name])
-      }
-    },
-  })
-
-  const reset = () => {
-    form.reset(EMPTY_FILTERS)
-    void syncUrl({})
-  }
+  const { form, search, machines, reset } = useStoreFilters(useStoreUrl())
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pt-6 pb-16 sm:px-6">
@@ -100,7 +43,7 @@ export function StorePage() {
         >
           {machines.map((machine) => (
             <li key={machine.slug}>
-              <MachineCard machine={machine} search={committed} />
+              <MachineCard machine={machine} search={search} />
             </li>
           ))}
         </ul>

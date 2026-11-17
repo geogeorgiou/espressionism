@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vite-plus/test'
 import {
   isSearching,
   messageViews,
-  storeLinkSearch,
   toPartView,
 } from '@/features/chat/utils/parts'
 
@@ -105,20 +104,6 @@ describe('toPartView', () => {
         fillPart({ ok: false, errors: [{ field: 'x', message: 'y' }] }),
       ),
     ).toBe(null)
-  })
-})
-
-describe('storeLinkSearch', () => {
-  it('maps the filters to store params, leaving out defaults', () => {
-    expect(
-      storeLinkSearch({
-        filters: { minPrice: 200, maxPrice: 600, minRating: 4.6 },
-        sort: 'rating_desc',
-      }),
-    ).toEqual({ minPrice: 200, maxPrice: 600, minRating: 4.5 })
-    expect(storeLinkSearch({ filters: {}, sort: 'price_asc' })).toEqual({
-      sort: 'price_asc',
-    })
   })
 })
 
