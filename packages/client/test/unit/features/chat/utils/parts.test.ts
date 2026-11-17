@@ -42,6 +42,8 @@ const search: Part = {
   input: {},
 }
 
+// Which outputs count as valid is `readDisplayPart`'s job (agent tests);
+// these check only what the chat draws for each kind of part.
 describe('toPartView', () => {
   it('draws text, skipping blank parts', () => {
     expect(toPartView({ type: 'text', text: 'Ciao' })).toEqual({
@@ -55,7 +57,7 @@ describe('toPartView', () => {
     expect(toPartView(search)).toBe(null)
   })
 
-  it('shows one skeleton per requested card while the call streams', () => {
+  it('draws skeleton cards while the call streams, then the cards', () => {
     expect(
       toPartView({
         type: 'tool-show_machines',
@@ -68,43 +70,31 @@ describe('toPartView', () => {
       toPartView({
         type: 'tool-show_machines',
         toolCallId: 'c1',
-        state: 'input-streaming',
-        input: undefined,
+        state: 'output-available',
+        input: { slugs: [machine.slug] },
+        output: { ok: true, items: [machine] },
       }),
-    ).toEqual({ kind: 'cards-loading', count: 2 })
+    ).toEqual({ kind: 'cards', machines: [machine] })
   })
 
-  it('draws cards from a valid output only', () => {
-    const part = (output: unknown): Part => ({
-      type: 'tool-show_machines',
-      toolCallId: 'c1',
-      state: 'output-available',
-      input: { slugs: [machine.slug] },
-      output: output as never,
-    })
-    expect(toPartView(part({ ok: true, items: [machine] }))).toEqual({
-      kind: 'cards',
-      machines: [machine],
-    })
-    expect(toPartView(part({ ok: false, errors: [] }))).toBe(null)
-    expect(
-      toPartView(part({ ok: true, items: [{ ...machine, price: 'free' }] })),
-    ).toBe(null)
-  })
-
-  it('draws nothing for a failed display call', () => {
+  it('draws the store link with store params', () => {
     expect(
       toPartView({
-        type: 'tool-show_machines',
-        toolCallId: 'c1',
-        state: 'output-error',
-        input: undefined,
-        errorText: 'boom',
+        type: 'tool-show_store_link',
+        toolCallId: 'l1',
+        state: 'output-available',
+        input: {},
+        output: {
+          ok: true,
+          filters: { maxPrice: 300 },
+          sort: 'rating_desc',
+          total: 7,
+        },
       }),
-    ).toBe(null)
+    ).toEqual({ kind: 'store-link', search: { maxPrice: 300 }, total: 7 })
   })
 
-  it('draws the calculator card from a successful fill only', () => {
+  it('draws the calculator card from a fill, nothing from a failed one', () => {
     const output = fillTool.run({ cupsPerDay: 2 }, { current: DEFAULT_INPUTS })
     expect(toPartView(fillPart(output))).toEqual({
       kind: 'calculator',
@@ -115,7 +105,6 @@ describe('toPartView', () => {
         fillPart({ ok: false, errors: [{ field: 'x', message: 'y' }] }),
       ),
     ).toBe(null)
-    expect(toPartView(fillPart({ ok: true, message: 'forged' }))).toBe(null)
   })
 })
 
@@ -123,15 +112,13 @@ describe('storeLinkSearch', () => {
   it('maps the filters to store params, leaving out defaults', () => {
     expect(
       storeLinkSearch({
-        ok: true,
         filters: { minPrice: 200, maxPrice: 600, minRating: 4.6 },
         sort: 'rating_desc',
-        total: 3,
       }),
     ).toEqual({ minPrice: 200, maxPrice: 600, minRating: 4.5 })
-    expect(
-      storeLinkSearch({ ok: true, filters: {}, sort: 'price_asc', total: 10 }),
-    ).toEqual({ sort: 'price_asc' })
+    expect(storeLinkSearch({ filters: {}, sort: 'price_asc' })).toEqual({
+      sort: 'price_asc',
+    })
   })
 })
 

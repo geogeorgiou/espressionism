@@ -185,8 +185,8 @@ describe('createChatHandler', () => {
         ]),
     })
     const session = sessionOf(await readChunks(await handler(post(question))))
-    expect(store.get(session.id)?.at(-1)?.text).toMatch(
-      /^Done\.\n\[Calculator filled: cupsPerDay=2 → fast, break-even \d+ months?\]$/,
+    expect(store.get(session.id)?.at(-1)?.text).toBe(
+      `Done.\n[Calculator filled: cupsPerDay=2 → fast. ${output.ok ? output.message : ''}]`,
     )
   })
 

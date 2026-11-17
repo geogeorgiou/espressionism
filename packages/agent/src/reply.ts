@@ -3,7 +3,7 @@ import { createUIMessageStream, isStepCount, streamText } from 'ai'
 import type { LanguageModel } from 'ai'
 
 import type { ChatTurn } from './contract'
-import { DISPLAY_TOOLS } from './contract'
+import { isDisplayTool } from './contract'
 import type { ReplyFn } from './handler'
 import { EMPTY_REPLY, INSTRUCTIONS } from './instructions'
 import { GENERIC_ERROR, logError, writeText } from './stream'
@@ -36,8 +36,6 @@ export interface StoreReplyConfig {
   model: StoreModel
   limits?: Partial<StoreReplyLimits>
 }
-
-const DISPLAY_TOOL_NAMES = new Set<string>(Object.values(DISPLAY_TOOLS))
 
 /**
  * Robospresso's brain: the model answers with the store search and the
@@ -89,7 +87,7 @@ export function createStoreReply({ model, limits }: StoreReplyConfig): ReplyFn {
               ids.set(chunk.toolCallId, chunk.toolName)
               break
             case 'tool-output-available':
-              if (DISPLAY_TOOL_NAMES.has(ids.get(chunk.toolCallId) ?? '')) {
+              if (isDisplayTool(ids.get(chunk.toolCallId) ?? '')) {
                 answered = true
               }
               break

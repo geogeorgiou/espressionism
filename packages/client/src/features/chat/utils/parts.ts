@@ -1,14 +1,9 @@
 import type {
   Machine,
   RobospressoMessage,
-  ShowStoreLinkOutput,
+  SearchResult,
 } from '@espressionism/agent/contract'
-import {
-  MAX_SHOWN_MACHINES,
-  fillCalculatorOutputSchema,
-  showMachinesOutputSchema,
-  showStoreLinkOutputSchema,
-} from '@espressionism/agent/contract'
+import { readDisplayPart } from '@espressionism/agent/contract'
 import type { ChatStatus } from 'ai'
 
 import type { StoreSearch } from '@/features/store/constants'
@@ -29,52 +24,30 @@ export type PartView =
   | { kind: 'store-link'; search: StoreSearch; total: number }
   | { kind: 'calculator'; message: string }
 
-/** Skeleton cards while `show_machines` is still being called. */
-const LOADING_CARDS = 2
-
 /**
  * The renderer registry's pure half: one message part → what to draw, or
  * null for parts the visitor never sees (the search itself, step markers,
- * a display call the model got wrong and will retry). Tool outputs are
- * parsed with the agent's contract, so a malformed one draws nothing.
+ * a display call the model got wrong and will retry). `readDisplayPart`
+ * reads the tool parts against the agent's contract.
  */
 export function toPartView(part: Part): PartView | null {
-  switch (part.type) {
-    case 'text':
-      return part.text.trim() ? { kind: 'text', text: part.text } : null
-    case 'tool-show_machines': {
-      if (
-        part.state === 'input-streaming' ||
-        part.state === 'input-available'
-      ) {
-        const asked = part.input?.slugs?.length ?? LOADING_CARDS
-        const count = Math.min(Math.max(asked, 1), MAX_SHOWN_MACHINES)
-        return { kind: 'cards-loading', count }
+  if (part.type === 'text') {
+    return part.text.trim() ? { kind: 'text', text: part.text } : null
+  }
+  const display = readDisplayPart(part)
+  switch (display?.tool) {
+    case 'show_machines':
+      return display.state === 'loading'
+        ? { kind: 'cards-loading', count: display.count }
+        : { kind: 'cards', machines: display.machines }
+    case 'show_store_link':
+      return {
+        kind: 'store-link',
+        search: storeLinkSearch(display),
+        total: display.total,
       }
-      if (part.state !== 'output-available') return null
-      const output = showMachinesOutputSchema.safeParse(part.output)
-      return output.success && output.data.ok
-        ? { kind: 'cards', machines: output.data.items }
-        : null
-    }
-    case 'tool-show_store_link': {
-      if (part.state !== 'output-available') return null
-      const output = showStoreLinkOutputSchema.safeParse(part.output)
-      return output.success && output.data.ok
-        ? {
-            kind: 'store-link',
-            search: storeLinkSearch(output.data),
-            total: output.data.total,
-          }
-        : null
-    }
-    case 'tool-fill_calculator': {
-      if (part.state !== 'output-available') return null
-      const output = fillCalculatorOutputSchema.safeParse(part.output)
-      return output.success && output.data.ok
-        ? { kind: 'calculator', message: output.data.message }
-        : null
-    }
+    case 'fill_calculator':
+      return { kind: 'calculator', message: display.fill.message }
     default:
       return null
   }
@@ -100,9 +73,9 @@ export function messageViews(message: RobospressoMessage): KeyedPartView[] {
  * the next one down), minus the defaults.
  */
 export function storeLinkSearch(
-  output: Extract<ShowStoreLinkOutput, { ok: true }>,
+  link: Pick<SearchResult, 'filters' | 'sort'>,
 ): StoreSearch {
-  const form = storeFormSchema.parse(agentSearchToForm(output))
+  const form = storeFormSchema.parse(agentSearchToForm(link))
   return compactSearch(formToSearch(form))
 }
 

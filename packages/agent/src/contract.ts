@@ -7,13 +7,14 @@
  * A request is one question plus the session it belongs to; the server
  * holds the conversation (Robospresso's memory). Replies are an AI SDK UI
  * message stream (server-sent events): a transient `data-session` part, then
- * text parts plus tool parts the client renders as components. The display
- * tools' outputs and the session part are parsed with the schemas below.
+ * text parts plus tool parts the client renders as components. Display
+ * tool parts are read with `readDisplayPart`; the session part is parsed
+ * with the schema below.
  */
 import { calculatorSchema, fillTool } from '@espressionism/calculator'
 import { machineSchema, searchResultSchema } from '@espressionism/store'
 import type { searchTool } from '@espressionism/store'
-import type { ToolOutput, ToolTypes } from '@espressionism/tool'
+import type { ToolTypes } from '@espressionism/tool'
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
 
@@ -21,6 +22,12 @@ import { showMachinesTool, showStoreLinkTool } from './display-tools'
 
 export { calculatorSchema, machineSchema, searchResultSchema }
 export { MAX_SHOWN_MACHINES } from './display-tools'
+export { isDisplayTool, readDisplayPart } from './display-parts'
+export type {
+  CalculatorFill,
+  DisplayPart,
+  DisplayToolName,
+} from './display-parts'
 
 export const CHAT_ENDPOINT = '/api/chat'
 
@@ -80,22 +87,10 @@ export const DISPLAY_TOOLS = {
   fillCalculator: fillTool.name,
 } as const
 
-/** `show_machines` output: the machines to draw as cards, in order. */
-export const showMachinesOutputSchema = showMachinesTool.outputSchema
-
-/** `fill_calculator` output: the merged values and the calculator's read. */
-export const fillCalculatorOutputSchema = fillTool.outputSchema
-
-/** `show_store_link` output: the store's filters and how many machines match. */
-export const showStoreLinkOutputSchema = showStoreLinkTool.outputSchema
-
 export type ChatTurn = z.infer<typeof chatTurnSchema>
 export type ChatRequest = z.infer<typeof chatRequestSchema>
 export type ChatError = z.infer<typeof chatErrorSchema>
 export type SessionData = z.infer<typeof sessionDataSchema>
-export type ShowMachinesOutput = ToolOutput<typeof showMachinesTool>
-export type ShowStoreLinkOutput = ToolOutput<typeof showStoreLinkTool>
-export type FillCalculatorOutput = ToolOutput<typeof fillTool>
 export type { Machine, SearchResult } from '@espressionism/store'
 
 /** Every tool Robospresso may call. */
