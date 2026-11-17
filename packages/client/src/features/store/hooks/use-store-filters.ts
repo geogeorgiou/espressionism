@@ -1,12 +1,11 @@
 import { searchMachines, searchTool } from '@espressionism/store'
 import type { Machine } from '@espressionism/store'
 import { useSelector } from '@tanstack/react-form'
-import { useNavigate } from '@tanstack/react-router'
+import { getRouteApi } from '@tanstack/react-router'
 import { useCallback } from 'react'
 
 import { useAppForm } from '@/features/common/form/form'
 import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
-import { Route } from '@/routes/store'
 
 import type { StoreFormValues, StoreSearch } from '../constants'
 import { EMPTY_FILTERS, storeFormSchema } from '../constants'
@@ -18,6 +17,8 @@ import {
   searchToForm,
   searchToQuery,
 } from '../utils/query'
+
+const Route = getRouteApi('/store')
 
 /** Where the store's last valid filters live between visits. */
 export interface StoreUrl {
@@ -41,7 +42,7 @@ const ANNOTATIONS: WebMCP.ToolAnnotations = {
 /** The store route's URL, as `useStoreFilters` reads and writes it. */
 export function useStoreUrl(): StoreUrl {
   const search = Route.useSearch()
-  const navigate = useNavigate({ from: Route.fullPath })
+  const navigate = Route.useNavigate()
   return {
     search,
     save: (next) =>

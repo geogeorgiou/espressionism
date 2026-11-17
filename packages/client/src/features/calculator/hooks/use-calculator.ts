@@ -1,17 +1,18 @@
 import type { CalculatorFill } from '@espressionism/agent/contract'
 import { analyze, fillTool } from '@espressionism/calculator'
 import { useSelector } from '@tanstack/react-form'
-import { useNavigate } from '@tanstack/react-router'
+import { getRouteApi } from '@tanstack/react-router'
 import { useCallback, useMemo, useState } from 'react'
 
 import type { CalculatorHandle } from '@/features/chat/hooks/use-chat'
 import { useAppForm } from '@/features/common/form/form'
 import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
-import { Route } from '@/routes/index'
 
 import type { CalculatorValues } from '../constants'
 import { DEFAULT_INPUTS, calculatorSchema } from '../constants'
 import { calculatorFormOptions } from '../utils/form-options'
+
+const Route = getRouteApi('/')
 
 /** Where the calculator's last valid values live between visits. */
 export interface CalculatorUrl {
@@ -34,7 +35,7 @@ const ANNOTATIONS: WebMCP.ToolAnnotations = {
 /** The calculator route's URL, as `useCalculator` reads and writes it. */
 export function useCalculatorUrl(): CalculatorUrl {
   const search = Route.useSearch()
-  const navigate = useNavigate({ from: Route.fullPath })
+  const navigate = Route.useNavigate()
   return {
     search,
     save: (values) =>

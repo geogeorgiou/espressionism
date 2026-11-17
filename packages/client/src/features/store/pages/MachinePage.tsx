@@ -1,13 +1,13 @@
-import { Link } from '@tanstack/react-router'
+import { Link, getRouteApi } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
-
-import { Route } from '@/routes/store_.$slug'
 
 import { MachineRating } from '../components/MachineRating'
 import { MachineSprite } from '../components/MachineSprite'
 import { STORE_DISCLAIMER } from '../constants'
 import { formatPrice } from '../utils/format'
 import { compactSearch } from '../utils/query'
+
+const Route = getRouteApi('/store_/$slug')
 
 export function MachinePage() {
   const machine = Route.useLoaderData()
