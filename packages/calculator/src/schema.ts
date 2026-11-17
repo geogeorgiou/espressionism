@@ -65,6 +65,3 @@ export const calculatorSchema = z.object({
 })
 
 export type CalculatorValues = z.infer<typeof calculatorSchema>
-
-/** What an agent may send to fill the calculator: any subset of the fields. */
-export const agentFillSchema = calculatorSchema.partial().strict()

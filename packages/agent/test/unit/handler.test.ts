@@ -1,4 +1,4 @@
-import { DEFAULT_INPUTS, runCalculatorFill } from '@espressionism/calculator'
+import { DEFAULT_INPUTS, fillTool } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import { createUIMessageStream } from 'ai'
 import type { UIMessageChunk } from 'ai'
@@ -165,7 +165,7 @@ describe('createChatHandler', () => {
 
   it('remembers what it filled in the calculator', async () => {
     const store = createInMemoryStore()
-    const output = runCalculatorFill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    const output = fillTool.run({ cupsPerDay: 2 }, { current: DEFAULT_INPUTS })
     const handler = createChatHandler({
       store,
       reply: () =>
@@ -185,8 +185,8 @@ describe('createChatHandler', () => {
         ]),
     })
     const session = sessionOf(await readChunks(await handler(post(question))))
-    expect(store.get(session.id)?.at(-1)?.text).toMatch(
-      /^Done\.\n\[Calculator filled: cupsPerDay=2 → fast, break-even \d+ months?\]$/,
+    expect(store.get(session.id)?.at(-1)?.text).toBe(
+      `Done.\n[Calculator filled: cupsPerDay=2 → fast. ${output.ok ? output.message : ''}]`,
     )
   })
 

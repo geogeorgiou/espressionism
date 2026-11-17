@@ -1,5 +1,5 @@
 import type { ChatRequest } from '@espressionism/agent/contract'
-import { DEFAULT_INPUTS, runCalculatorFill } from '@espressionism/calculator'
+import { DEFAULT_INPUTS, fillTool } from '@espressionism/calculator'
 import { CATALOG } from '@espressionism/store'
 import {
   RouterProvider,
@@ -409,12 +409,12 @@ describe('ChatPanel', () => {
 
   it('fills the calculator once and shows what it found', async () => {
     const user = userEvent.setup()
-    const fill = runCalculatorFill(DEFAULT_INPUTS, { cupsPerDay: 2 })
+    const output = fillTool.run({ cupsPerDay: 2 }, { current: DEFAULT_INPUTS })
     const apply = vi.fn()
     renderChat(
       fakeAgent(
         [
-          ...tool('f1', 'fill_calculator', { cupsPerDay: 2 }, fill),
+          ...tool('f1', 'fill_calculator', { cupsPerDay: 2 }, output),
           ...text('Pays off fast.'),
         ],
         text('Anything else?'),
@@ -428,11 +428,11 @@ describe('ChatPanel', () => {
     const card = await screen.findByRole('region', {
       name: 'Calculator updated',
     })
-    expect(card.textContent).toContain(fill.ok ? fill.message : '')
+    expect(card.textContent).toContain(output.ok ? output.message : '')
     const link = within(card).getByRole('link', { name: 'See the charts' })
     expect(link.getAttribute('href')).toBe('#charts')
     expect(apply).toHaveBeenCalledTimes(1)
-    expect(apply).toHaveBeenCalledWith(fill)
+    expect(apply).toHaveBeenCalledWith(output)
 
     // Later renders (a new answer streaming in) never apply it again.
     await user.type(input, 'More?{Enter}')

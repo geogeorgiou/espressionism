@@ -1,5 +1,4 @@
-import type { CoffeeInputs, CumulativePoint } from '@espressionism/calculator'
-import { cumulativeCosts } from '@espressionism/calculator'
+import type { ChartSeries, CumulativePoint } from '@espressionism/calculator'
 import { useMemo } from 'react'
 import type { AxisOptions, UserSerie } from 'react-charts'
 import { Chart } from 'react-charts'
@@ -17,19 +16,16 @@ interface Datum {
 }
 
 interface CumulativeCostChartProps {
-  inputs: CoffeeInputs
+  series: ChartSeries<CumulativePoint>
   currency: Currency
-  breakEvenMonths: number | null
 }
 
 export function CumulativeCostChart({
-  inputs,
+  series,
   currency,
-  breakEvenMonths,
 }: CumulativeCostChartProps) {
   const { isDark: dark } = useTheme()
-  const points = useMemo(() => cumulativeCosts(inputs), [inputs])
-  const last: CumulativePoint | undefined = points.at(-1)
+  const { points, summary } = series
 
   const data = useMemo<UserSerie<Datum>[]>(
     () => [
@@ -72,14 +68,6 @@ export function CumulativeCostChart({
     ],
     [currency],
   )
-
-  const summary = last
-    ? `After ${inputs.years} years the café totals ${formatMoney(last.cafe, currency)} and the machine ${formatMoney(last.home, currency)}.${
-        breakEvenMonths === null
-          ? ' The lines never cross.'
-          : ` The lines cross around month ${Math.ceil(breakEvenMonths)}.`
-      }`
-    : ''
 
   return (
     <ChartCard

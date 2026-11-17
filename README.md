@@ -84,15 +84,16 @@ The TanStack Devtools panel sits in the bottom-right corner while the dev server
 
 Run from the repo root:
 
-| Command              | What it does                                     |
-| -------------------- | ------------------------------------------------ |
-| `pnpm dev`           | Start the client dev server on port 3000         |
-| `pnpm build`         | Production build (cached)                        |
-| `pnpm check`         | Format check + lint + type check                 |
-| `pnpm check --fix`   | Same, with autofixes                             |
-| `pnpm test:unit`     | Unit tests                                       |
-| `pnpm check:secrets` | Prove the API key never reaches the built bundle |
-| `pnpm test:e2e`      | End-to-end tests (Playwright)                    |
+| Command                | What it does                                     |
+| ---------------------- | ------------------------------------------------ |
+| `pnpm dev`             | Start the client dev server on port 3000         |
+| `pnpm build`           | Production build (cached)                        |
+| `pnpm check`           | Format check + lint + type check                 |
+| `pnpm check --fix`     | Same, with autofixes                             |
+| `pnpm test:unit`       | Unit tests                                       |
+| `pnpm check:secrets`   | Prove the API key never reaches the built bundle |
+| `pnpm lint:boundaries` | Check import boundaries (runs in CI)             |
+| `pnpm test:e2e`        | End-to-end tests (Playwright)                    |
 
 ## Robospresso chat
 
@@ -125,7 +126,7 @@ Four layers, each with one job:
 | Layer                      | Where                                                         | What it produces                                                                                                                                                                                                                          |
 | -------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Model**                  | Gemini                                                        | Decides to call `show_machines({ slugs: ['gaggia-…', '…'] })`. It only names machines; it never writes a price.                                                                                                                           |
-| **Tool**                   | `packages/agent/src/tools.ts`                                 | Runs the call on the server: looks each slug up in the catalog and returns `{ ok: true, items: [Machine…] }`, or `{ ok: false, errors }` for an unknown slug (the model sees the errors and retries).                                     |
+| **Tool**                   | `packages/agent/src/display-tools.ts`                         | Runs the call on the server: looks each slug up in the catalog and returns `{ ok: true, items: [Machine…] }`, or `{ ok: false, errors }` for an unknown slug (the model sees the errors and retries).                                     |
 | **Stream → message parts** | AI SDK (`streamText` on the server, `useChat` in the browser) | Streams the call as chunks (`tool-input-available`, then `tool-output-available`). `useChat` folds them into one part on the message: `{ type: 'tool-show_machines', state, input, output }`. The `state` moves forward as chunks arrive. |
 | **Part → view → JSX**      | `features/chat/utils/parts.ts`, `components/MessageParts.tsx` | `toPartView(part)` (pure) reads the part's `type` and `state`, parses the output with the contract's Zod schema and returns a view, or `null` to draw nothing. `MessageParts` looks the view's `kind` up in `RENDERERS` and renders it.   |
 
@@ -145,7 +146,7 @@ So one `show_machines` call shows on screen as skeletons first, then the same sp
 
 To add a new kind of answer, such as a comparison table:
 
-1. **Agent:** add a `compare_machines` tool in `tools.ts` with a flat, `.strict()` input, and put its output schema in `contract.ts` (plus its entry in `RobospressoTools`).
+1. **Agent:** define a `compare_machines` tool with `defineTool` in `display-tools.ts` (flat, `.strict()` input), add `aiTool(compareMachinesTool)` to `replyTools` in `tools.ts`, and re-export its `outputSchema` from `contract.ts` (plus its entry in `RobospressoToolDefs`).
 2. **Instructions:** tell the model when to call it (`instructions.ts`).
 3. **Client:** add a `case 'tool-compare_machines'` to `toPartView` that returns a new view kind, and a renderer for that kind in `RENDERERS`. TypeScript rejects a view kind without a renderer.
 
@@ -214,11 +215,25 @@ packages/
   agent/           chat handler, session memory, Gemini reply, tools, HTTP contract
   calculator/      calculator schema, pure cost model + fill tool, shared by UI and agent
   store/           demo catalog + pure filter/sort, shared by UI and agent
+  tool/            defineTool: one definition per agent tool, adapted for the AI SDK and WebMCP
 docs/
   assets/          README images
 ```
 
 See [CLAUDE.md](./CLAUDE.md) for the full conventions.
+
+## Import boundaries
+
+Packages and client layers may only import downward. [dependency-cruiser](https://github.com/sverweij/dependency-cruiser) enforces this with `pnpm lint:boundaries`, a CI step kept out of the pre-commit hook.
+
+<img src="docs/assets/boundaries.svg" alt="Espressionism import boundaries. Packages: the client and the api are entry points; the client may use any package but reaches the agent only through its contract, and the api uses only the agent. The agent uses the calculator and the store, which never import each other, and both use tool, a leaf. Inside the client: routes, then shell components, then domain features (calculator, store, chat), then base features (mascot, theme, common, webmcp), then ui primitives and lib, each importing only the layers below. Nothing imports a route, only routes mount pages, and a feature keeps its stores private." width="100%" />
+
+- **One seam into the agent.** The client imports `@espressionism/agent/contract`, which holds only Zod schemas and types. It never imports the agent root, so server code stays out of the browser bundle.
+- **Public entries only.** Another package is imported through its `package.json` exports, never a file inside it.
+- **No cycles.** A feature reads its route with `getRouteApi`, never by importing the route file.
+- **Tests are exempt from the layers.** They may reach across layers to build fixtures, but must still resolve and stay acyclic.
+
+The rules, and the reason each exists, live in [`.dependency-cruiser.mjs`](./.dependency-cruiser.mjs). Redraw the diagram with `pnpm docs:boundaries` when they change.
 
 ## License
 

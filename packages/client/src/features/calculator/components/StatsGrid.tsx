@@ -1,13 +1,11 @@
-import type { CoffeeInputs, CoffeeSummary } from '@espressionism/calculator'
+import type { Analysis, CalculatorValues } from '@espressionism/calculator'
 import { clsx } from 'clsx'
 
-import type { Currency } from '../utils/format'
-import { formatDuration, formatMoney } from '../utils/format'
+import { formatMoney, formatYears } from '../utils/format'
 
 interface StatsGridProps {
-  summary: CoffeeSummary
-  inputs: CoffeeInputs
-  currency: Currency
+  analysis: Analysis
+  values: CalculatorValues
 }
 
 interface Stat {
@@ -17,13 +15,15 @@ interface Stat {
   tone?: 'cafe' | 'home'
 }
 
-export function StatsGrid({ summary, inputs, currency }: StatsGridProps) {
+export function StatsGrid({ analysis, values }: StatsGridProps) {
+  const { summary, copy } = analysis
+  const { currency } = values
   const money = (v: number) => formatMoney(v, currency)
   const stats: Stat[] = [
     {
       label: 'Café per year',
       value: money(summary.cafeYearly),
-      detail: `${summary.cupsPerYear} drinks at ${formatMoney(inputs.cafePrice, currency, { cents: true })}`,
+      detail: `${summary.cupsPerYear} drinks at ${formatMoney(values.cafePrice, currency, { cents: true })}`,
       tone: 'cafe',
     },
     {
@@ -34,21 +34,14 @@ export function StatsGrid({ summary, inputs, currency }: StatsGridProps) {
     },
     {
       label: 'Break-even',
-      value:
-        summary.breakEvenMonths === null
-          ? `Not within ${inputs.years} ${inputs.years === 1 ? 'year' : 'years'}`
-          : formatDuration(summary.breakEvenMonths),
-      detail:
-        summary.yearlySavings > 0
-          ? `You keep ${money(summary.yearlySavings)} a year after that`
-          : 'Home cups cost more than the café',
+      ...copy.breakEven,
     },
     {
       label: 'Real cost per home cup',
       value: formatMoney(summary.effectiveHomeCupCost, currency, {
         cents: true,
       }),
-      detail: `Machine included, over ${inputs.years} ${inputs.years === 1 ? 'year' : 'years'}`,
+      detail: `Machine included, over ${formatYears(values.years)}`,
     },
   ]
 

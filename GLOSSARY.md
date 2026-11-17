@@ -64,6 +64,10 @@ _Avoid_: Result, outcome
 The verdict when the espresso machine doesn't pay for itself within the years compared, whether it never would or would only later.
 _Avoid_: Never
 
+**Analysis**:
+The calculator's read on one set of valid values: the summary (break-even, totals), the verdict, one sentence that states it, the page's wording and the chart series. The page, Robospresso and browser agents all read the same analysis; agents get only the summary, verdict and sentence.
+_Avoid_: Result (too vague), report
+
 ### Store
 
 **Demo store**:

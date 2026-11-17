@@ -18,7 +18,8 @@ type Renderers = {
 
 /**
  * The renderer registry's JSX half: one component per kind of part. To draw
- * a new tool, add its view in `toPartView` and its renderer here.
+ * a new display tool, add its case to `readDisplayPart` (agent contract),
+ * its view in `toPartView` and its renderer here.
  */
 const RENDERERS: Renderers = {
   text: ({ text }) => <p className={BUBBLE}>{text}</p>,

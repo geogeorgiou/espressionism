@@ -35,7 +35,7 @@ export function stubModelContext() {
 }
 
 export function resetWebMcpStore() {
-  useWebMcpStore.setState({ statuses: {}, invokedAt: {} })
+  useWebMcpStore.setState({ statuses: {} })
 }
 
 export function fakeTool(

@@ -7,27 +7,32 @@
  * A request is one question plus the session it belongs to; the server
  * holds the conversation (Robospresso's memory). Replies are an AI SDK UI
  * message stream (server-sent events): a transient `data-session` part, then
- * text parts plus tool parts the client renders as components. The display
- * tools' outputs and the session part are parsed with the schemas below.
+ * text parts plus tool parts the client renders as components. Display
+ * tool parts are read with `readDisplayPart`; the session part is parsed
+ * with the schema below.
  */
-import {
-  calculatorSchema,
-  fillToolOutputSchema,
-} from '@espressionism/calculator'
-import type { FillToolInput, FillToolOutput } from '@espressionism/calculator'
+import { calculatorSchema, fillTool } from '@espressionism/calculator'
 import { machineSchema, searchResultSchema } from '@espressionism/store'
-import type { SearchToolInput, SearchToolResult } from '@espressionism/store'
+import type { searchTool } from '@espressionism/store'
+import type { ToolTypes } from '@espressionism/tool'
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
 
+import { showMachinesTool, showStoreLinkTool } from './display-tools'
+
 export { calculatorSchema, machineSchema, searchResultSchema }
+export { MAX_SHOWN_MACHINES } from './display-tools'
+export { isDisplayTool, readDisplayPart } from './display-parts'
+export type {
+  CalculatorFill,
+  DisplayPart,
+  DisplayToolName,
+} from './display-parts'
 
 export const CHAT_ENDPOINT = '/api/chat'
 
 /** Largest request body the handler reads, in bytes. */
 export const MAX_BODY_BYTES = 4 * 1024
-/** Most machines one `show_machines` call puts on screen. */
-export const MAX_SHOWN_MACHINES = 5
 
 /**
  * The text of the visitor's turn: trimmed, non-empty and short. The
@@ -77,57 +82,46 @@ export const chatErrorSchema = z.object({ error: z.string() })
 
 /** The tools whose parts the chat draws, by the names the model sees. */
 export const DISPLAY_TOOLS = {
-  showMachines: 'show_machines',
-  showStoreLink: 'show_store_link',
-  fillCalculator: 'fill_calculator',
+  showMachines: showMachinesTool.name,
+  showStoreLink: showStoreLinkTool.name,
+  fillCalculator: fillTool.name,
 } as const
-
-const toolErrorSchema = z.object({ field: z.string(), message: z.string() })
-
-const toolFailureSchema = z.object({
-  ok: z.literal(false),
-  errors: z.array(toolErrorSchema),
-})
-
-/** `show_machines` output: the machines to draw as cards, in order. */
-export const showMachinesOutputSchema = z.discriminatedUnion('ok', [
-  z.object({ ok: z.literal(true), items: z.array(machineSchema).min(1) }),
-  toolFailureSchema,
-])
-
-/** `fill_calculator` output: the merged values and the calculator's read. */
-export const fillCalculatorOutputSchema = fillToolOutputSchema
-
-/** `show_store_link` output: the store's filters and how many machines match. */
-export const showStoreLinkOutputSchema = z.discriminatedUnion('ok', [
-  searchResultSchema
-    .pick({ filters: true, sort: true, total: true })
-    .extend({ ok: z.literal(true) }),
-  toolFailureSchema,
-])
 
 export type ChatTurn = z.infer<typeof chatTurnSchema>
 export type ChatRequest = z.infer<typeof chatRequestSchema>
 export type ChatError = z.infer<typeof chatErrorSchema>
 export type SessionData = z.infer<typeof sessionDataSchema>
-export type ShowMachinesOutput = z.infer<typeof showMachinesOutputSchema>
-export type ShowStoreLinkOutput = z.infer<typeof showStoreLinkOutputSchema>
 export type { Machine, SearchResult } from '@espressionism/store'
 
-export interface ShowMachinesInput {
-  slugs: string[]
+/** One session as the dev memory endpoint shows it: no turn text, only sizes. */
+export interface SessionSummary {
+  id: string
+  turns: number
+  chars: number
+  /** Time since the session was last used. */
+  idleMs: number
+  /** Past its TTL, waiting for the next lazy cleanup. */
+  expired: boolean
 }
-export type ShowStoreLinkInput = Omit<SearchToolInput, 'limit'>
 
-/** Every tool part a Robospresso message can carry. */
+/** The in-memory store's limits and sessions, least recently used first. */
+export interface MemorySnapshot {
+  ttlMs: number
+  maxSessions: number
+  maxTurns: number
+  sessions: SessionSummary[]
+}
+
+/** Every tool Robospresso may call. */
+type RobospressoToolDefs =
+  | typeof searchTool
+  | typeof showMachinesTool
+  | typeof showStoreLinkTool
+  | typeof fillTool
+
+/** Every tool part a Robospresso message can carry, by tool name. */
 export type RobospressoTools = {
-  search_espresso_machines: {
-    input: SearchToolInput
-    output: SearchToolResult
-  }
-  show_machines: { input: ShowMachinesInput; output: ShowMachinesOutput }
-  show_store_link: { input: ShowStoreLinkInput; output: ShowStoreLinkOutput }
-  fill_calculator: { input: FillToolInput; output: FillToolOutput }
+  [D in RobospressoToolDefs as D['name']]: ToolTypes<D>
 }
 
 /** The data parts a reply can carry, by name (`data-<name>`). */

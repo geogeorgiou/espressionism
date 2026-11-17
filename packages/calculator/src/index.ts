@@ -1,17 +1,18 @@
 export type { Drink } from './drinks'
 export { DRINKS, DRINK_LABELS } from './drinks'
 export type { Currency } from './format'
-export { CURRENCIES, formatDuration, formatMoney } from './format'
+export { CURRENCIES, formatDuration, formatMoney, formatYears } from './format'
 export type { CalculatorValues } from './schema'
-export { DEFAULT_INPUTS, agentFillSchema, calculatorSchema } from './schema'
-export * from './cost-model'
-export { toCoffeeInputs } from './inputs'
-export type { AgentFill, AgentFillError, AgentFillResult } from './agent-fill'
-export { agentFillResult, applyAgentFill } from './agent-fill'
+export { DEFAULT_INPUTS, calculatorSchema } from './schema'
+export type { Analysis, AnalysisCopy, ChartSeries } from './analyze'
+export { analyze } from './analyze'
+export type {
+  CoffeeInputs,
+  CoffeeSummary,
+  CumulativePoint,
+  CupCostPoint,
+  Verdict,
+  YearlyPoint,
+} from './cost-model'
 export type { FillToolInput, FillToolOutput } from './tool'
-export {
-  CALCULATOR_TOOL,
-  fillToolInputSchema,
-  fillToolOutputSchema,
-  runCalculatorFill,
-} from './tool'
+export { fillTool } from './tool'

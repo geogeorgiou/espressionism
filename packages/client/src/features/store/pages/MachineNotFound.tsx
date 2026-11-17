@@ -1,10 +1,11 @@
-import { Link } from '@tanstack/react-router'
+import { Link, getRouteApi } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 
 import { Robospresso } from '@/features/mascot/components/Robospresso'
-import { Route } from '@/routes/store_.$slug'
 
 import { compactSearch } from '../utils/query'
+
+const Route = getRouteApi('/store_/$slug')
 
 /** Shown at /store/$slug when no machine has that slug. */
 export function MachineNotFound() {
