@@ -1,15 +1,5 @@
-import { analyze } from '@espressionism/calculator'
-import { useSelector } from '@tanstack/react-form'
-import { useNavigate } from '@tanstack/react-router'
-import { useMemo } from 'react'
-
 import { ChatPanel } from '@/features/chat/components/ChatPanel'
 import { MemoryOverview } from '@/features/chat/components/MemoryOverview'
-import type { CalculatorHandle } from '@/features/chat/hooks/use-chat'
-import { useAppForm } from '@/features/common/form/form'
-import { useToolInvokedAt } from '@/features/webmcp/hooks/use-webmcp-tool'
-import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
-import { Route } from '@/routes/index'
 
 import { CalculatorForm } from '../components/CalculatorForm'
 import { CostPerCupChart } from '../components/CostPerCupChart'
@@ -17,69 +7,12 @@ import { CumulativeCostChart } from '../components/CumulativeCostChart'
 import { StatsGrid } from '../components/StatsGrid'
 import { VerdictPanel } from '../components/VerdictPanel'
 import { YearlySpendChart } from '../components/YearlySpendChart'
-import type { CalculatorValues } from '../constants'
-import { DEFAULT_INPUTS, calculatorSchema } from '../constants'
-import {
-  CALCULATOR_TOOL_NAME,
-  useCalculatorTool,
-} from '../hooks/use-calculator-tool'
-import { calculatorFormOptions } from '../utils/form-options'
+import { useCalculator, useCalculatorUrl } from '../hooks/use-calculator'
 
 export function CalculatorPage() {
-  const search = Route.useSearch()
-  const navigate = useNavigate({ from: Route.fullPath })
-
-  const form = useAppForm({
-    ...calculatorFormOptions,
-    defaultValues: { ...DEFAULT_INPUTS, ...search },
-    listeners: {
-      // Keep the URL in sync so a result can be bookmarked or shared.
-      onChangeDebounceMs: 400,
-      onChange: ({ formApi }) => {
-        const parsed = calculatorSchema.safeParse(formApi.state.values)
-        if (!parsed.success) return
-        void navigate({
-          search: parsed.data,
-          replace: true,
-          resetScroll: false,
-        })
-      },
-    },
-  })
-
-  // WebMCP: let an agent fill the form through the same path as typing.
-  useCalculatorTool({
-    getValues: () => form.state.values,
-    setValue: (name, value) => form.setFieldValue(name, value),
-  })
-  const agentFilledAt = useToolInvokedAt(CALCULATOR_TOOL_NAME)
-
-  // Robospresso reads the form with each question and fills it the same way
-  // the WebMCP tool does: field by field, then the "Filled by your agent" hop.
-  const calculator = useMemo<CalculatorHandle>(
-    () => ({
-      getValues: () => {
-        const parsed = calculatorSchema.safeParse(form.state.values)
-        return parsed.success ? parsed.data : undefined
-      },
-      apply: ({ changes, values }) => {
-        for (const name of Object.keys(changes) as (keyof CalculatorValues)[]) {
-          form.setFieldValue(name, values[name])
-        }
-        useWebMcpStore.getState().recordInvocation(CALCULATOR_TOOL_NAME)
-      },
-    }),
-    [form],
-  )
-
-  // Results follow the last valid answers: while a field is half-typed or
-  // invalid, fall back to what's in the URL (the last valid, synced values).
-  const values = useSelector(form.store, (state) => state.values)
-  const parsed = calculatorSchema.safeParse(values)
-  const committed: CalculatorValues = parsed.success
-    ? parsed.data
-    : { ...DEFAULT_INPUTS, ...search }
-  const { summary, verdict } = analyze(committed)
+  const { form, values, analysis, agentFilledAt, chat } =
+    useCalculator(useCalculatorUrl())
+  const { summary, verdict } = analysis
 
   return (
     <>
@@ -104,32 +37,29 @@ export function CalculatorPage() {
           <VerdictPanel
             verdict={verdict}
             summary={summary}
-            years={committed.years}
-            currency={committed.currency}
-            flavor={committed.drink}
+            years={values.years}
+            currency={values.currency}
+            flavor={values.drink}
             agentFilledAt={agentFilledAt}
           />
           <StatsGrid
             summary={summary}
-            inputs={committed}
-            currency={committed.currency}
+            inputs={values}
+            currency={values.currency}
           />
           <div id="charts" className="flex scroll-mt-6 flex-col gap-6">
             <CumulativeCostChart
-              inputs={committed}
-              currency={committed.currency}
+              inputs={values}
+              currency={values.currency}
               breakEvenMonths={summary.breakEvenMonths}
             />
-            <YearlySpendChart
-              inputs={committed}
-              currency={committed.currency}
-            />
-            <CostPerCupChart inputs={committed} currency={committed.currency} />
+            <YearlySpendChart inputs={values} currency={values.currency} />
+            <CostPerCupChart inputs={values} currency={values.currency} />
           </div>
         </div>
       </div>
       <div className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
-        <ChatPanel calculator={calculator} />
+        <ChatPanel calculator={chat} />
         {import.meta.env.DEV && <MemoryOverview />}
       </div>
     </>
