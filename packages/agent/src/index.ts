@@ -4,8 +4,6 @@ export type {
   ConversationStore,
   InMemoryStore,
   InMemoryStoreOptions,
-  MemorySnapshot,
-  SessionSummary,
   WindowBudget,
 } from './memory'
 export { createInMemoryStore, selectWindow } from './memory'

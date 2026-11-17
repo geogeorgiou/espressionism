@@ -93,6 +93,25 @@ export type ChatError = z.infer<typeof chatErrorSchema>
 export type SessionData = z.infer<typeof sessionDataSchema>
 export type { Machine, SearchResult } from '@espressionism/store'
 
+/** One session as the dev memory endpoint shows it: no turn text, only sizes. */
+export interface SessionSummary {
+  id: string
+  turns: number
+  chars: number
+  /** Time since the session was last used. */
+  idleMs: number
+  /** Past its TTL, waiting for the next lazy cleanup. */
+  expired: boolean
+}
+
+/** The in-memory store's limits and sessions, least recently used first. */
+export interface MemorySnapshot {
+  ttlMs: number
+  maxSessions: number
+  maxTurns: number
+  sessions: SessionSummary[]
+}
+
 /** Every tool Robospresso may call. */
 type RobospressoToolDefs =
   | typeof searchTool
