@@ -90,6 +90,7 @@ export default defineConfig({
         // and the TanStack Start entry points (src/{client,server,start}).
         files: [
           '**/*.config.{ts,mts,js,mjs}',
+          '.dependency-cruiser.mjs',
           'packages/client/src/{client,server,start}.{ts,tsx}',
         ],
         rules: {
