@@ -19,12 +19,17 @@ const fillInputSchema = calculatorSchema.partial().strict()
 
 export type FillToolInput = z.infer<typeof fillInputSchema>
 
-const VERDICTS = ['never', 'fast', 'solid', 'slow'] as const satisfies Verdict[]
+const VERDICTS = [
+  'cafe-wins',
+  'fast',
+  'solid',
+  'slow',
+] as const satisfies Verdict[]
 
 const coffeeSummarySchema = z.object({
   cupsPerYear: z.number(),
   cafeYearly: z.number(),
-  homeRunningYearly: z.number(),
+  homeCostYearly: z.number(),
   yearlySavings: z.number(),
   breakEvenMonths: z.number().nullable(),
   cafeTotal: z.number(),
@@ -54,7 +59,7 @@ export const fillTool = defineTool({
   name: 'fill_calculator',
   title: 'Fill the calculator',
   description:
-    "Fill in the espresso machine break-even calculator with the user's coffee habit and machine costs, then return the result: break-even, totals and a verdict. Send only the fields you know; the rest keep their current values.",
+    "Fill in the espresso machine break-even calculator with the visitor's coffee habit and machine costs, then return the result: break-even, totals and a verdict. Send only the fields you know; the rest keep their current values.",
   input: fillInputSchema,
   output: fillResultSchema,
   run: (changes, { current }: { current: CalculatorValues }) => {

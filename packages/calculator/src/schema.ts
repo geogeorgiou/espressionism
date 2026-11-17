@@ -48,7 +48,7 @@ export const calculatorSchema = z.object({
   daysPerWeek: count('Days per week', 'days')
     .min(1, 'At least one day')
     .max(7, 'A week has seven days')
-    .meta({ description: 'Days per week the user buys coffee out.' }),
+    .meta({ description: 'Days per week the visitor buys coffee out.' }),
   machinePrice: money('Machine price', 20000).meta({
     description: 'One-off price of the espresso machine, grinder included.',
   }),

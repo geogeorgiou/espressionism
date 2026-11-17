@@ -17,12 +17,12 @@ import { z } from 'zod'
 /** Most machines one `show_machines` call puts on screen. */
 export const MAX_SHOWN_MACHINES = 5
 
-/** Draws machines as product cards under the reply, in the model's order. */
+/** Draws machines as machine cards under the reply, in the model's order. */
 export const showMachinesTool = defineTool({
   name: 'show_machines',
   title: 'Show machines as cards',
   description:
-    'Show the machines you recommend as product cards in the chat, with name, price, rating and a link to the product page. Call it once with your picks after searching, instead of listing them in your text.',
+    'Show the machines you recommend as cards in the chat, with name, price, rating and a link to the machine page. Call it once with your picks after searching, instead of listing them in your text.',
   input: z
     .object({
       slugs: z

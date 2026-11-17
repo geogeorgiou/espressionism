@@ -18,7 +18,7 @@ function verdictMessage(
 ): string {
   const span = `${values.years} ${values.years === 1 ? 'year' : 'years'}`
   const net = formatMoney(Math.abs(summary.netSavings), values.currency)
-  if (verdict === 'never' || summary.breakEvenMonths === null) {
+  if (verdict === 'cafe-wins' || summary.breakEvenMonths === null) {
     return `The café wins over ${span}: buying out costs ${net} less than the machine.`
   }
   const when = formatDuration(summary.breakEvenMonths)

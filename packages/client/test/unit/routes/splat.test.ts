@@ -35,7 +35,7 @@ describe('store paths', () => {
     )
   })
 
-  it('keep an unknown product at its URL for the not-found screen', async () => {
+  it('keep an unknown machine at its URL for the not-found screen', async () => {
     expect((await landOn('/store/no-such-machine')).pathname).toBe(
       '/store/no-such-machine',
     )

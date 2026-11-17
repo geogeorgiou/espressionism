@@ -72,7 +72,7 @@ export function StorePage() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pt-6 pb-16 sm:px-6">
       <div className="flex flex-col gap-2">
         <h1 className="font-pixel text-2xl leading-tight sm:text-4xl">
-          The machine shop
+          The machine store
         </h1>
         <p className="text-base text-muted-foreground sm:text-lg">
           Espresso machines for every budget, best rated first.

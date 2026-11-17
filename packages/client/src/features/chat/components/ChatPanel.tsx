@@ -21,7 +21,7 @@ interface ChatPanelProps {
  * "Ask Robospresso": a chat about espresso machines in our demo store, run by
  * Bitspresso's robot cousin.
  * Answers stream from `@espressionism/agent` at `/api/chat`: text, plus
- * product cards and a store link drawn from the agent's display tools.
+ * machine cards and a store link drawn from the agent's display tools.
  */
 export function ChatPanel({
   transport,

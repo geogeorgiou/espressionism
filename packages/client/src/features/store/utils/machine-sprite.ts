@@ -1,8 +1,8 @@
 /**
- * The store's product picture: one 20×20 espresso machine, drawn like
+ * The store's machine picture: one 20×20 espresso machine, drawn like
  * Bitspresso (one letter per pixel, "." is empty). Every machine shares the
  * shape; its slug picks a body color, an accent and a speckle of noise, so
- * each product gets its own look that never changes between visits.
+ * each machine gets its own look that never changes between visits.
  *
  * Legend:
  *   K outline · T cup-warmer tray · B body · H body shine · S body shade

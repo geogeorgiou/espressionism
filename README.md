@@ -32,13 +32,13 @@ It's also a small, real-world playground for the TanStack ecosystem (Start, Rout
 
 Espressionism has two halves: a **UI** with two pages, and an **agent** that answers questions in the calculator's chat. Both share the same demo store data and the same calculator core, so the store page, the calculator and the chat always agree.
 
-<img src="docs/assets/architecture.svg" alt="Espressionism architecture: the chat sends each question, its session id and the calculator's values to POST /api/chat, which keeps the conversation in memory, prompts Gemini directly and streams back text plus product cards and calculator fills built by its tools (store search, show_machines, show_store_link, fill_calculator) from the shared store and calculator packages. Cards open the store pages in a new tab; fills update the calculator on the page. In-browser agents use the same store search and calculator tool through WebMCP." width="100%" />
+<img src="docs/assets/architecture.svg" alt="Espressionism architecture: the chat sends each question, its session id and the calculator's values to POST /api/chat, which keeps the conversation in memory, prompts Gemini directly and streams back text plus machine cards and calculator fills built by its tools (store search, show_machines, show_store_link, fill_calculator) from the shared store and calculator packages. Cards open the store pages in a new tab; fills update the calculator on the page. In-browser agents use the same store search and calculator tool through WebMCP." width="100%" />
 
 | Part           | What it does                                                                                                                                                                                                                                                    | Status  |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | **Calculator** | Compares your café habit with brewing at home: break-even, yearly spend, real cost per cup. Inputs live in the URL. Robospresso can fill it from the chat, and in-browser AI agents through [WebMCP](#webmcp-let-an-ai-agent-fill-it-in).                       | ✅ Live |
-| **Store**      | A demo shop of 10 espresso machines (made-up prices and ratings), with price and rating filters and sorting, all kept in the URL, plus a page for each product.                                                                                                 | ✅ Live |
-| **Chat**       | Robospresso, the espresso concierge on the calculator page. He remembers the conversation, answers with text plus product cards and a "See all in the store" link (new tab), and can fill in the calculator for you. See [Robospresso chat](#robospresso-chat). | ✅ Live |
+| **Store**      | A demo store of 10 espresso machines (made-up prices and ratings), with price and rating filters and sorting, all kept in the URL, plus a page for each machine.                                                                                                | ✅ Live |
+| **Chat**       | Robospresso, the espresso concierge on the calculator page. He remembers the conversation, answers with text plus machine cards and a "See all in the store" link (new tab), and can fill in the calculator for you. See [Robospresso chat](#robospresso-chat). | ✅ Live |
 | **Agent**      | `POST /api/chat`: Gemini (direct, via the AI SDK) with the store search and three display tools, and the conversation held on the server. Without an API key it answers with a placeholder.                                                                     | ✅ Live |
 
 ## Stack
@@ -101,7 +101,7 @@ Ask Robospresso (the chat on the calculator page) recommends machines from the d
 1. The browser sends **only the new question**, the session id from the last reply, and the calculator's current values to `POST /api/chat`. The server holds the conversation itself (see [Memory](#memory)), so nobody can slip a forged history or fake prices to the model.
 2. The agent (`packages/agent`) prompts Gemini with four tools. `search_espresso_machines` filters the catalog (the same tool the store page offers over WebMCP). `show_machines`, `show_store_link` and `fill_calculator` are **display tools**: the model picks which machines to show, and the server fills each card from the catalog, rejecting any slug the store doesn't sell; or the model names the calculator fields you mentioned, and the server merges them onto the page's values with the shared calculator core (`packages/calculator`, the same tool the page offers over WebMCP).
 3. The answer streams back as an [AI SDK UI message stream](https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol): text parts plus tool parts.
-4. The chat draws each part through a small renderer registry: text bubbles, skeleton cards while a call is in flight, then product cards and a store link that open in a new tab, so the conversation stays put. A calculator fill updates the form (the verdict mascots hop: "Filled by your agent") and leaves a small result card. See [How the chat draws an answer](#how-the-chat-draws-an-answer).
+4. The chat draws each part through a small renderer registry: text bubbles, skeleton cards while a call is in flight, then machine cards and a store link that open in a new tab, so the conversation stays put. A calculator fill updates the form (the verdict mascots hop: "Filled by your agent") and leaves a small result card. See [How the chat draws an answer](#how-the-chat-draws-an-answer).
 
 Every answer runs under fixed limits (4 model steps, 400 output tokens, 20 s). Upstream errors only reach the server log; the browser gets a generic apology and keeps whatever already arrived.
 
@@ -203,7 +203,7 @@ packages/
     src/
       features/
         calculator/   form, verdict, stats, charts and the WebMCP tool
-        store/        store and product pages, filters, machine sprites
+        store/        store and machine pages, filters, machine sprites
         chat/         Ask Robospresso: useChat, part renderers, cards
         mascot/       pixel-art sprites and SVG renderer
         webmcp/       tool registration hook, status store (Zustand) and banner

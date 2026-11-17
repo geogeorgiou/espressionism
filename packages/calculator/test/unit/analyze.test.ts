@@ -33,7 +33,7 @@ describe('analyze', () => {
       years: 1,
       currency: 'USD',
     })
-    expect(analysis.verdict).toBe('never')
+    expect(analysis.verdict).toBe('cafe-wins')
     expect(analysis.message).toMatch(
       /^The café wins over 1 year: buying out costs \$\d[\d,]* less than the machine\.$/,
     )

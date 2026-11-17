@@ -85,7 +85,7 @@ export const searchTool = defineTool({
   name: 'search_espresso_machines',
   title: 'Search the espresso machine store',
   description:
-    'Search the Espressionism demo store for espresso machines by price (EUR) and star rating, sorted best rated first unless asked otherwise. Returns each match with its name, brand, price, rating and product page url. Only machines from this store exist; send only the filters the user asked for.',
+    'Search the Espressionism demo store for espresso machines by price (EUR) and star rating, sorted best rated first unless asked otherwise. Returns each match with its name, brand, price, rating and machine page url. Only machines from this store exist; send only the filters the visitor asked for.',
   input: searchToolInputSchema,
   output: searchResultSchema,
   run: (input, ctx: { machines?: readonly Machine[] } | undefined) => {
