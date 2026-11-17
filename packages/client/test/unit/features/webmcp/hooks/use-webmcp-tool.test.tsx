@@ -170,7 +170,6 @@ describe('useWebMcpTool', () => {
       const output = await tool.execute({ cups: 2 }, { signal })
       expect(output).toEqual({ ok: true, total: 6 })
       expect(onResult).toHaveBeenCalledWith({ ok: true, total: 6 })
-      expect(useWebMcpStore.getState().invokedAt[pour.name]).toBeDefined()
     } finally {
       stub.restore()
     }
@@ -188,7 +187,6 @@ describe('useWebMcpTool', () => {
         errors: [{ field: 'cups' }],
       })
       expect(onResult).not.toHaveBeenCalled()
-      expect(useWebMcpStore.getState().invokedAt).toEqual({})
     } finally {
       stub.restore()
     }

@@ -31,9 +31,8 @@ export type WebMcpToolOptions<D extends AnyToolDef> = {
 /**
  * A tool definition (`defineTool`) as a WebMCP tool, registered while the
  * calling component is mounted. Every call runs `def.run` with the current
- * `context()`; a successful one goes to `onResult` (to update the page) and
- * is recorded for `useToolInvokedAt`. The agent gets `def.run`'s answer as
- * it is, failures included. Returns the tool's status.
+ * `context()`; a successful one goes to `onResult` (to update the page). The
+ * agent gets `def.run`'s answer as it is, failures included. Returns the tool's status.
  */
 export function useWebMcpTool<D extends AnyToolDef>(
   def: D,
@@ -53,10 +52,7 @@ export function useWebMcpTool<D extends AnyToolDef>(
     annotations,
     execute: (input) => {
       const result = run(input, context?.())
-      if (result.ok) {
-        onResult?.(result as Success<D>)
-        useWebMcpStore.getState().recordInvocation(def.name)
-      }
+      if (result.ok) onResult?.(result as Success<D>)
       return result
     },
   })
@@ -135,9 +131,4 @@ export function useWebMcpSummary(): WebMcpSummary {
     useShallow((state) => Object.values(state.statuses)),
   )
   return summarizeStatuses(statuses)
-}
-
-/** When the named tool last finished a call successfully, or null. */
-export function useToolInvokedAt(name: string): number | null {
-  return useWebMcpStore((state) => state.invokedAt[name] ?? null)
 }

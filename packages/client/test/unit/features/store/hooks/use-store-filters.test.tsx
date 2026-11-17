@@ -14,7 +14,6 @@ import { StoreFilters } from '@/features/store/components/StoreFilters'
 import type { StoreSearch } from '@/features/store/constants'
 import type { StoreUrl } from '@/features/store/hooks/use-store-filters'
 import { useStoreFilters } from '@/features/store/hooks/use-store-filters'
-import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
 
 import { resetWebMcpStore, stubModelContext } from '../../webmcp/model-context'
 
@@ -138,9 +137,6 @@ describe('useStoreFilters', () => {
           minRating: 4,
           sort: 'price_asc',
         })
-        expect(
-          useWebMcpStore.getState().invokedAt[searchTool.name],
-        ).toBeDefined()
       } finally {
         stub.restore()
       }

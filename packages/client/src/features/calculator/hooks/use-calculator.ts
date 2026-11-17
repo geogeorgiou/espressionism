@@ -2,15 +2,11 @@ import type { CalculatorFill } from '@espressionism/agent/contract'
 import { analyze, fillTool } from '@espressionism/calculator'
 import { useSelector } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import type { CalculatorHandle } from '@/features/chat/hooks/use-chat'
 import { useAppForm } from '@/features/common/form/form'
-import {
-  useToolInvokedAt,
-  useWebMcpTool,
-} from '@/features/webmcp/hooks/use-webmcp-tool'
-import { useWebMcpStore } from '@/features/webmcp/stores/webmcp-store'
+import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
 import { Route } from '@/routes/index'
 
 import type { CalculatorValues } from '../constants'
@@ -52,7 +48,7 @@ export function useCalculatorUrl(): CalculatorUrl {
  * their analysis, and both agents' way in. A visitor's agent fills it over
  * WebMCP (`fill_calculator`, registered while mounted) and Robospresso
  * through `chat`; either way the changed fields land on the form as if
- * typed, and `agentFilledAt` moves. The URL follows valid values, debounced,
+ * typed, and `agentFills` counts up. The URL follows valid values, debounced,
  * so a result can be bookmarked or shared.
  */
 export function useCalculator({ search, save }: CalculatorUrl) {
@@ -73,31 +69,27 @@ export function useCalculator({ search, save }: CalculatorUrl) {
     return parsed.success ? parsed.data : undefined
   }, [form])
 
+  // How many fills an agent has put on the form since the page mounted.
+  const [agentFills, setAgentFills] = useState(0)
+
   const putOnForm = useCallback(
     ({ changes, values }: CalculatorFill) => {
       for (const name of Object.keys(changes) as (keyof CalculatorValues)[]) {
         form.setFieldValue(name, values[name])
       }
+      setAgentFills((count) => count + 1)
     },
     [form],
   )
 
-  // The WebMCP adapter records the call itself after `onResult`.
   useWebMcpTool(fillTool, {
     annotations: ANNOTATIONS,
     context: () => ({ current: form.state.values }),
     onResult: putOnForm,
   })
-  const agentFilledAt = useToolInvokedAt(fillTool.name)
 
   const chat = useMemo<CalculatorHandle>(
-    () => ({
-      getValues: readValues,
-      apply: (fill) => {
-        putOnForm(fill)
-        useWebMcpStore.getState().recordInvocation(fillTool.name)
-      },
-    }),
+    () => ({ getValues: readValues, apply: putOnForm }),
     [readValues, putOnForm],
   )
 
@@ -112,5 +104,5 @@ export function useCalculator({ search, save }: CalculatorUrl) {
     return { values: shown, analysis: analyze(shown) }
   }, [formValues, search])
 
-  return { form, values, analysis, agentFilledAt, chat }
+  return { form, values, analysis, agentFills, chat }
 }

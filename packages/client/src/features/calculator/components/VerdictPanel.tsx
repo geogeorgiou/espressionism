@@ -8,8 +8,8 @@ import { captionInset } from '@/features/mascot/utils/sprite'
 interface VerdictPanelProps {
   analysis: Analysis
   flavor: MascotFlavor
-  /** When an agent last filled the form over WebMCP, or null if never. */
-  agentFilledAt?: number | null
+  /** How many fills an agent has put on the form; 0 if none yet. */
+  agentFills?: number
 }
 
 const MOODS: Record<Verdict, { mug: MascotMood; togo: MascotMood }> = {
@@ -22,14 +22,14 @@ const MOODS: Record<Verdict, { mug: MascotMood; togo: MascotMood }> = {
 export function VerdictPanel({
   analysis,
   flavor,
-  agentFilledAt = null,
+  agentFills = 0,
 }: VerdictPanelProps) {
   const { verdict, copy } = analysis
   const moods = MOODS[verdict]
   // Each agent fill remounts the mascots (key) so the one-shot hop replays.
   const mascotClass = clsx(
     'size-28 group-hover:animate-hop motion-reduce:group-hover:animate-none sm:size-36',
-    agentFilledAt !== null && 'animate-hop motion-reduce:animate-none',
+    agentFills > 0 && 'animate-hop motion-reduce:animate-none',
   )
 
   return (
@@ -38,7 +38,7 @@ export function VerdictPanel({
       aria-live="polite"
       className="flex flex-col gap-5 rounded-lg border-4 border-foreground bg-screen p-5 text-screen-foreground shadow-pixel-lg"
     >
-      {agentFilledAt !== null && (
+      {agentFills > 0 && (
         <p className="self-center bg-screen-foreground px-2.5 py-1 font-pixel text-xs text-screen">
           Filled by your agent
         </p>
@@ -46,7 +46,7 @@ export function VerdictPanel({
       <div className="flex items-end justify-center gap-4 sm:gap-8">
         <figure className="group flex flex-col items-center gap-2">
           <Bitspresso
-            key={agentFilledAt}
+            key={agentFills}
             form="togo"
             mood={moods.togo}
             flavor={flavor}
@@ -64,7 +64,7 @@ export function VerdictPanel({
         </span>
         <figure className="group flex flex-col items-center gap-2">
           <Bitspresso
-            key={agentFilledAt}
+            key={agentFills}
             form="mug"
             mood={moods.mug}
             flavor={flavor}

@@ -38,7 +38,7 @@ describe('useCalculator', () => {
     const values = { ...DEFAULT_INPUTS, cupsPerDay: 3 }
     expect(result.current.values).toEqual(values)
     expect(result.current.analysis).toEqual(analyze(values))
-    expect(result.current.agentFilledAt).toBe(null)
+    expect(result.current.agentFills).toBe(0)
   })
 
   it('shows the URL values while a field is invalid, and saves only valid ones', async () => {
@@ -72,7 +72,10 @@ describe('useCalculator', () => {
     const { result } = renderHook(() => useCalculator(url))
     act(() => result.current.chat.apply(fillOf({ cupsPerDay: 2 })))
     expect(result.current.values.cupsPerDay).toBe(2)
-    expect(result.current.agentFilledAt).not.toBe(null)
+    expect(result.current.agentFills).toBe(1)
+    // Each fill counts, so the verdict panel's hop replays.
+    act(() => result.current.chat.apply(fillOf({ cupsPerDay: 3 })))
+    expect(result.current.agentFills).toBe(2)
   })
 
   it("puts a visitor's agent's WebMCP fill on the form the same way", async () => {
@@ -87,7 +90,7 @@ describe('useCalculator', () => {
       })
       expect(answer).toMatchObject({ ok: true, changes: { cupsPerDay: 4 } })
       expect(result.current.values.cupsPerDay).toBe(4)
-      expect(result.current.agentFilledAt).not.toBe(null)
+      expect(result.current.agentFills).toBe(1)
     } finally {
       stub.restore()
     }

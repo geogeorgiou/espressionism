@@ -10,7 +10,7 @@ import { YearlySpendChart } from '../components/YearlySpendChart'
 import { useCalculator, useCalculatorUrl } from '../hooks/use-calculator'
 
 export function CalculatorPage() {
-  const { form, values, analysis, agentFilledAt, chat } =
+  const { form, values, analysis, agentFills, chat } =
     useCalculator(useCalculatorUrl())
 
   return (
@@ -36,7 +36,7 @@ export function CalculatorPage() {
           <VerdictPanel
             analysis={analysis}
             flavor={values.drink}
-            agentFilledAt={agentFilledAt}
+            agentFills={agentFills}
           />
           <StatsGrid analysis={analysis} values={values} />
           <div id="charts" className="flex scroll-mt-6 flex-col gap-6">
