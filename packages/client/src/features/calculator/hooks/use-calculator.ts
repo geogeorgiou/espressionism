@@ -1,6 +1,5 @@
 import type { CalculatorFill } from '@espressionism/agent/contract'
 import { analyze, fillTool } from '@espressionism/calculator'
-import type { Analysis } from '@espressionism/calculator'
 import { useSelector } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback, useMemo } from 'react'
@@ -103,11 +102,15 @@ export function useCalculator({ search, save }: CalculatorUrl) {
   )
 
   const formValues = useSelector(form.store, (state) => state.values)
-  const parsed = calculatorSchema.safeParse(formValues)
-  const values: CalculatorValues = parsed.success
-    ? parsed.data
-    : { ...DEFAULT_INPUTS, ...search }
-  const analysis: Analysis = analyze(values)
+  // Memoized so the charts' series keep their identity between renders that
+  // don't change the form or the URL.
+  const { values, analysis } = useMemo(() => {
+    const parsed = calculatorSchema.safeParse(formValues)
+    const shown: CalculatorValues = parsed.success
+      ? parsed.data
+      : { ...DEFAULT_INPUTS, ...search }
+    return { values: shown, analysis: analyze(shown) }
+  }, [formValues, search])
 
   return { form, values, analysis, agentFilledAt, chat }
 }

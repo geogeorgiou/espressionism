@@ -1,5 +1,4 @@
-import type { CoffeeInputs } from '@espressionism/calculator'
-import { costPerCupOverTime } from '@espressionism/calculator'
+import type { ChartSeries, CupCostPoint } from '@espressionism/calculator'
 import { useMemo } from 'react'
 import type { AxisOptions, UserSerie } from 'react-charts'
 import { Chart } from 'react-charts'
@@ -17,13 +16,19 @@ interface Datum {
 }
 
 interface CostPerCupChartProps {
-  inputs: CoffeeInputs
+  series: ChartSeries<CupCostPoint>
+  /** Price of one café drink; caps the axis. */
+  cafePrice: number
   currency: Currency
 }
 
-export function CostPerCupChart({ inputs, currency }: CostPerCupChartProps) {
+export function CostPerCupChart({
+  series,
+  cafePrice,
+  currency,
+}: CostPerCupChartProps) {
   const { isDark: dark } = useTheme()
-  const points = useMemo(() => costPerCupOverTime(inputs), [inputs])
+  const { points, summary } = series
 
   const data = useMemo<UserSerie<Datum>[]>(
     () => [
@@ -53,7 +58,7 @@ export function CostPerCupChart({ inputs, currency }: CostPerCupChartProps) {
 
   // The first months are dominated by the machine price; cap the axis so the
   // interesting part (where home dips under the café) stays readable.
-  const cap = inputs.cafePrice * 4
+  const cap = cafePrice * 4
   const secondaryAxes = useMemo<AxisOptions<Datum>[]>(
     () => [
       {
@@ -73,11 +78,6 @@ export function CostPerCupChart({ inputs, currency }: CostPerCupChartProps) {
     ],
     [cap, currency],
   )
-
-  const last = points.at(-1)
-  const summary = last
-    ? `A café cup is always ${formatMoney(inputs.cafePrice, currency, { cents: true })}. A home cup, machine included, falls to ${formatMoney(last.home, currency, { cents: true })} after ${inputs.years} years.`
-    : ''
 
   return (
     <ChartCard

@@ -12,11 +12,15 @@ describe('fillTool.run', () => {
   it('merges the sent fields onto the current values and analyzes them', () => {
     const output = fill(DEFAULT_INPUTS, { cupsPerDay: 2, machinePrice: 450 })
     const values = { ...DEFAULT_INPUTS, cupsPerDay: 2, machinePrice: 450 }
+    const { summary, verdict, message } = analyze(values)
+    // Only the verdict and its sentence: the page's copy and charts stay home.
     expect(output).toEqual({
       ok: true,
       changes: { cupsPerDay: 2, machinePrice: 450 },
       values,
-      ...analyze(values),
+      summary,
+      verdict,
+      message,
     })
     // 2 lattes × 5 days at €3.50 against €0.45 at home: a €450 machine
     // pays for itself well inside a year.

@@ -65,7 +65,9 @@ export const fillTool = defineTool({
   run: (changes, { current }: { current: CalculatorValues }) => {
     const merged = calculatorSchema.safeParse({ ...current, ...changes })
     if (!merged.success) return toolFailure(merged.error.issues)
-    return { changes, values: merged.data, ...analyze(merged.data) }
+    // Agents get the verdict and its sentence, not the page's copy or charts.
+    const { summary, verdict, message } = analyze(merged.data)
+    return { changes, values: merged.data, summary, verdict, message }
   },
 })
 

@@ -12,7 +12,6 @@ import { useCalculator, useCalculatorUrl } from '../hooks/use-calculator'
 export function CalculatorPage() {
   const { form, values, analysis, agentFilledAt, chat } =
     useCalculator(useCalculatorUrl())
-  const { summary, verdict } = analysis
 
   return (
     <>
@@ -35,26 +34,25 @@ export function CalculatorPage() {
 
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <VerdictPanel
-            verdict={verdict}
-            summary={summary}
-            years={values.years}
-            currency={values.currency}
+            analysis={analysis}
             flavor={values.drink}
             agentFilledAt={agentFilledAt}
           />
-          <StatsGrid
-            summary={summary}
-            inputs={values}
-            currency={values.currency}
-          />
+          <StatsGrid analysis={analysis} values={values} />
           <div id="charts" className="flex scroll-mt-6 flex-col gap-6">
             <CumulativeCostChart
-              inputs={values}
+              series={analysis.charts.cumulative}
               currency={values.currency}
-              breakEvenMonths={summary.breakEvenMonths}
             />
-            <YearlySpendChart inputs={values} currency={values.currency} />
-            <CostPerCupChart inputs={values} currency={values.currency} />
+            <YearlySpendChart
+              series={analysis.charts.yearly}
+              currency={values.currency}
+            />
+            <CostPerCupChart
+              series={analysis.charts.costPerCup}
+              cafePrice={values.cafePrice}
+              currency={values.currency}
+            />
           </div>
         </div>
       </div>
