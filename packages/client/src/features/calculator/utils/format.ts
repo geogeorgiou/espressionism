@@ -5,6 +5,7 @@ export {
   CURRENCIES,
   formatDuration,
   formatMoney,
+  formatYears,
 } from '@espressionism/calculator'
 
 /** Short axis label for a month index: "M6", "Y2". */

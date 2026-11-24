@@ -19,6 +19,11 @@ function plural(n: number, unit: string): string {
   return `${n} ${unit}${n === 1 ? '' : 's'}`
 }
 
+/** "1 year", "5 years". */
+export function formatYears(years: number): string {
+  return plural(years, 'year')
+}
+
 /** "7 months", "1 year 2 months", "2 years". */
 export function formatDuration(totalMonths: number): string {
   const rounded = Math.max(1, Math.ceil(totalMonths))

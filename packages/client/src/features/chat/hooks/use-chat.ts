@@ -1,12 +1,10 @@
 import { useChat as useAiChat } from '@ai-sdk/react'
+import type { CalculatorFill } from '@espressionism/agent/contract'
 import {
-  fillCalculatorOutputSchema,
+  readDisplayPart,
   sessionDataSchema,
 } from '@espressionism/agent/contract'
-import type {
-  CalculatorValues,
-  FillToolOutput,
-} from '@espressionism/calculator'
+import type { CalculatorValues } from '@espressionism/calculator'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { CHAT_GREETING } from '../constants'
@@ -17,9 +15,6 @@ import type {
 } from '../utils/messages'
 import { GREETING_ID, createChatTransport } from '../utils/messages'
 import { isSearching } from '../utils/parts'
-
-/** A successful `fill_calculator` answer, ready to put on the form. */
-export type CalculatorFill = Extract<FillToolOutput, { ok: true }>
 
 /** The page's calculator, as Robospresso reads and fills it. */
 export interface CalculatorHandle {
@@ -126,9 +121,10 @@ export function useChat({
           continue
         }
         applied.current.add(part.toolCallId)
-        const fill = fillCalculatorOutputSchema.safeParse(part.output)
-        if (fill.success && fill.data.ok)
-          calculatorRef.current?.apply(fill.data)
+        const display = readDisplayPart(part)
+        if (display?.tool === 'fill_calculator') {
+          calculatorRef.current?.apply(display.fill)
+        }
       }
     }
   }, [messages])

@@ -1,5 +1,4 @@
-import type { CoffeeInputs } from '@espressionism/calculator'
-import { yearlySpend } from '@espressionism/calculator'
+import type { ChartSeries, YearlyPoint } from '@espressionism/calculator'
 import { useMemo } from 'react'
 import type { AxisOptions, UserSerie } from 'react-charts'
 import { Chart } from 'react-charts'
@@ -17,13 +16,13 @@ interface Datum {
 }
 
 interface YearlySpendChartProps {
-  inputs: CoffeeInputs
+  series: ChartSeries<YearlyPoint>
   currency: Currency
 }
 
-export function YearlySpendChart({ inputs, currency }: YearlySpendChartProps) {
+export function YearlySpendChart({ series, currency }: YearlySpendChartProps) {
   const { isDark: dark } = useTheme()
-  const years = useMemo(() => yearlySpend(inputs), [inputs])
+  const { points: years, summary } = series
 
   const data = useMemo<UserSerie<Datum>[]>(
     () => [
@@ -59,16 +58,6 @@ export function YearlySpendChart({ inputs, currency }: YearlySpendChartProps) {
     ],
     [currency],
   )
-
-  const first = years[0]
-  const later = years[1]
-  const summary = first
-    ? `Year one: café ${formatMoney(first.cafe, currency)}, machine ${formatMoney(first.home, currency)} including its price.${
-        later
-          ? ` Each later year: café ${formatMoney(later.cafe, currency)}, machine ${formatMoney(later.home, currency)}.`
-          : ''
-      }`
-    : ''
 
   return (
     <ChartCard

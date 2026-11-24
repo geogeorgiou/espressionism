@@ -1,29 +1,23 @@
 /**
- * The calculator tool, defined once. Robospresso's model reaches it through
- * the AI SDK (`packages/agent`), a visitor's in-browser agent through WebMCP
- * (the client's calculator page). Both adapters hand the raw input and the
- * current form values to `runCalculatorFill`, so they validate and answer
- * the same way.
+ * `fill_calculator`, defined once with `defineTool`. Robospresso's model
+ * reaches it through the AI SDK (`packages/agent`), a visitor's in-browser
+ * agent through WebMCP (the client's calculator page). Both run
+ * `fillTool.run(input, { current })` on the values the page shows, so they
+ * validate and answer the same way.
  */
+import { defineTool, toolFailure } from '@espressionism/tool'
+import type { ToolOutput } from '@espressionism/tool'
 import { z } from 'zod'
 
-import type { AgentFillError } from './agent-fill'
-import { agentFillResult, applyAgentFill } from './agent-fill'
+import { analyze } from './analyze'
 import type { CoffeeSummary, Verdict } from './cost-model'
 import type { CalculatorValues } from './schema'
-import { agentFillSchema, calculatorSchema } from './schema'
-
-export const CALCULATOR_TOOL = {
-  name: 'fill_calculator',
-  title: 'Fill the calculator',
-  description:
-    "Fill in the espresso machine break-even calculator with the visitor's coffee habit and machine costs, then return the result: break-even, totals and a verdict. Send only the fields you know; the rest keep their current values.",
-} as const
+import { calculatorSchema } from './schema'
 
 /** What agents may send: any subset of the calculator's fields. */
-export const fillToolInputSchema = agentFillSchema
+const fillInputSchema = calculatorSchema.partial().strict()
 
-export type FillToolInput = z.infer<typeof fillToolInputSchema>
+export type FillToolInput = z.infer<typeof fillInputSchema>
 
 const VERDICTS = [
   'cafe-wins',
@@ -44,38 +38,37 @@ const coffeeSummarySchema = z.object({
   effectiveHomeCupCost: z.number(),
 }) satisfies z.ZodType<CoffeeSummary>
 
-/** A tool answer: the merged values, what changed and the calculator's read. */
-export const fillToolOutputSchema = z.discriminatedUnion('ok', [
-  z.object({
-    ok: z.literal(true),
-    /** Only the fields the agent sent. */
-    changes: fillToolInputSchema,
-    values: calculatorSchema,
-    summary: coffeeSummarySchema,
-    verdict: z.enum(VERDICTS),
-    /** One sentence the agent can quote, in the chosen currency. */
-    message: z.string(),
-  }),
-  z.object({
-    ok: z.literal(false),
-    errors: z.array(z.object({ field: z.string(), message: z.string() })),
-  }),
-])
-
-export type FillToolOutput = z.infer<typeof fillToolOutputSchema>
+/** A fill: what changed, the merged values and their analysis. */
+const fillResultSchema = z.object({
+  /** Only the fields the agent sent, to set on the form one by one. */
+  changes: fillInputSchema,
+  values: calculatorSchema,
+  summary: coffeeSummarySchema,
+  verdict: z.enum(VERDICTS),
+  /** One sentence the agent can quote, in the chosen currency. */
+  message: z.string(),
+})
 
 /**
- * Merges an agent's input onto the current values and returns the result,
- * or the errors. Never throws; invalid input changes nothing.
+ * Merges the agent's fields onto `ctx.current` (the values the page shows)
+ * and analyzes the result. Nothing is applied unless the merged values are
+ * valid too: a field the agent left alone but the visitor half-typed fails
+ * the fill with the form's message.
  */
-export function runCalculatorFill(
-  current: CalculatorValues,
-  input: unknown,
-): FillToolOutput {
-  const fill = applyAgentFill(current, input)
-  if (!fill.ok)
-    return { ok: false, errors: fill.errors satisfies AgentFillError[] }
-  const result = agentFillResult(fill.values)
-  if (!result.ok) return result
-  return { ...result, changes: fill.changes }
-}
+export const fillTool = defineTool({
+  name: 'fill_calculator',
+  title: 'Fill the calculator',
+  description:
+    "Fill in the espresso machine break-even calculator with the visitor's coffee habit and machine costs, then return the result: break-even, totals and a verdict. Send only the fields you know; the rest keep their current values.",
+  input: fillInputSchema,
+  output: fillResultSchema,
+  run: (changes, { current }: { current: CalculatorValues }) => {
+    const merged = calculatorSchema.safeParse({ ...current, ...changes })
+    if (!merged.success) return toolFailure(merged.error.issues)
+    // Agents get the verdict and its sentence, not the page's copy or charts.
+    const { summary, verdict, message } = analyze(merged.data)
+    return { changes, values: merged.data, summary, verdict, message }
+  },
+})
+
+export type FillToolOutput = ToolOutput<typeof fillTool>

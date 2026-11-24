@@ -31,6 +31,10 @@ jobs:
       - name: Check (format, lint, types)
         run: pnpm check
 
+      # Package and client import layers (.dependency-cruiser.mjs)
+      - name: Import boundaries
+        run: pnpm lint:boundaries
+
       - name: Test
         run: pnpm test:unit
 

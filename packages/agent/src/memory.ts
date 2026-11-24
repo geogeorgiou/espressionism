@@ -3,7 +3,7 @@
  * reads and writes them through `ConversationStore`, so a durable backend
  * can replace the in-memory one without touching it.
  */
-import type { ChatTurn } from './contract'
+import type { ChatTurn, MemorySnapshot } from './contract'
 
 export interface ConversationStore {
   /** A new, empty session; returns its id. */
@@ -13,25 +13,6 @@ export interface ConversationStore {
   /** Adds turns to the end of a session. Throws if the session isn't held. */
   append: (id: string, turns: ChatTurn[]) => void
   delete: (id: string) => void
-}
-
-/** One session as the dev overview shows it: no turn text, only sizes. */
-export interface SessionSummary {
-  id: string
-  turns: number
-  chars: number
-  /** Time since the session was last used. */
-  idleMs: number
-  /** Past its TTL, waiting for the next lazy cleanup. */
-  expired: boolean
-}
-
-/** The in-memory store's limits and sessions, least recently used first. */
-export interface MemorySnapshot {
-  ttlMs: number
-  maxSessions: number
-  maxTurns: number
-  sessions: SessionSummary[]
 }
 
 /** The in-memory store, plus a read-only look inside for development. */

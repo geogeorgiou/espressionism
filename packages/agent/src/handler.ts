@@ -1,21 +1,18 @@
 import type { CalculatorValues } from '@espressionism/calculator'
-import { formatDuration } from '@espressionism/calculator'
-import {
-  createUIMessageStream,
-  createUIMessageStreamResponse,
-  getToolName,
-  isToolUIPart,
-} from 'ai'
+import { createUIMessageStream, createUIMessageStreamResponse } from 'ai'
 import type { UIMessage } from 'ai'
 
-import type { ChatError, ChatTurn, SessionData } from './contract'
+import type {
+  CalculatorFill,
+  ChatError,
+  ChatTurn,
+  SessionData,
+} from './contract'
 import {
-  DISPLAY_TOOLS,
   MAX_BODY_BYTES,
   chatRequestSchema,
   chatTurnSchema,
-  fillCalculatorOutputSchema,
-  showMachinesOutputSchema,
+  readDisplayPart,
 } from './contract'
 import type { ConversationStore } from './memory'
 import { createInMemoryStore, selectWindow } from './memory'
@@ -160,18 +157,12 @@ function assistantTurn(message: UIMessage): ChatTurn | undefined {
   const slugs: string[] = []
   const fills: string[] = []
   for (const part of message.parts) {
-    if (!isToolUIPart(part) || part.state !== 'output-available') continue
-    const name = getToolName(part)
-    if (name === DISPLAY_TOOLS.showMachines) {
-      const output = showMachinesOutputSchema.safeParse(part.output)
-      if (output.success && output.data.ok) {
-        slugs.push(...output.data.items.map((machine) => machine.slug))
-      }
+    const display = readDisplayPart(part)
+    if (display?.tool === 'show_machines' && display.state === 'done') {
+      slugs.push(...display.machines.map((machine) => machine.slug))
     }
-    if (name === DISPLAY_TOOLS.fillCalculator) {
-      const output = fillCalculatorOutputSchema.safeParse(part.output)
-      if (output.success && output.data.ok)
-        fills.push(calculatorNote(output.data))
+    if (display?.tool === 'fill_calculator') {
+      fills.push(calculatorNote(display.fill))
     }
   }
   const text = [
@@ -188,24 +179,15 @@ function assistantTurn(message: UIMessage): ChatTurn | undefined {
   return turn.success ? turn.data : undefined
 }
 
-/** `[Calculator filled: cupsPerDay=2 → fast, break-even 4 months]` */
-function calculatorNote({
-  changes,
-  verdict,
-  summary,
-}: {
-  changes: Record<string, unknown>
-  verdict: string
-  summary: { breakEvenMonths: number | null }
-}): string {
+/**
+ * `[Calculator filled: cupsPerDay=2 → fast. The machine pays for itself in
+ * 4 months and leaves €1,234 in your pocket over 3 years.]`
+ */
+function calculatorNote({ changes, verdict, message }: CalculatorFill): string {
   const fields = Object.entries(changes)
     .map(([field, value]) => `${field}=${String(value)}`)
     .join(', ')
-  const breakEven =
-    summary.breakEvenMonths === null
-      ? 'never breaks even'
-      : `break-even ${formatDuration(summary.breakEvenMonths)}`
-  return `[Calculator filled: ${fields || 'no changes'} → ${verdict}, ${breakEven}]`
+  return `[Calculator filled: ${fields || 'no changes'} → ${verdict}. ${message}]`
 }
 
 function json(

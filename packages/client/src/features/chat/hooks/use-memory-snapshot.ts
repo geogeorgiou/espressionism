@@ -1,4 +1,4 @@
-import type { MemorySnapshot } from '@espressionism/agent'
+import type { MemorySnapshot } from '@espressionism/agent/contract'
 import { useEffect, useState } from 'react'
 
 /** Dev-only route served by `vite/agent-api.ts`. */

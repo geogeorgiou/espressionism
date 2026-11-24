@@ -1,21 +1,15 @@
-import type { CoffeeSummary, Verdict } from '@espressionism/calculator'
+import type { Analysis, Verdict } from '@espressionism/calculator'
 import { clsx } from 'clsx'
 
 import { Bitspresso } from '@/features/mascot/components/Bitspresso'
 import type { MascotFlavor, MascotMood } from '@/features/mascot/utils/sprite'
 import { captionInset } from '@/features/mascot/utils/sprite'
 
-import type { Currency } from '../utils/format'
-import { formatDuration, formatMoney } from '../utils/format'
-
 interface VerdictPanelProps {
-  verdict: Verdict
-  summary: CoffeeSummary
-  years: number
-  currency: Currency
+  analysis: Analysis
   flavor: MascotFlavor
-  /** When an agent last filled the form over WebMCP, or null if never. */
-  agentFilledAt?: number | null
+  /** How many fills an agent has put on the form; 0 if none yet. */
+  agentFills?: number
 }
 
 const MOODS: Record<Verdict, { mug: MascotMood; togo: MascotMood }> = {
@@ -25,32 +19,18 @@ const MOODS: Record<Verdict, { mug: MascotMood; togo: MascotMood }> = {
   'cafe-wins': { mug: 'sleepy', togo: 'happy' },
 }
 
-function headline(verdict: Verdict, summary: CoffeeSummary, years: number) {
-  if (verdict === 'cafe-wins' || summary.breakEvenMonths === null) {
-    return `The café wins over ${years} ${years === 1 ? 'year' : 'years'}.`
-  }
-  const when = formatDuration(summary.breakEvenMonths)
-  if (verdict === 'fast') return `Paid off in just ${when}.`
-  if (verdict === 'slow') return `Pays off in ${when}. Slowly.`
-  return `Your machine pays for itself in ${when}.`
-}
-
 export function VerdictPanel({
-  verdict,
-  summary,
-  years,
-  currency,
+  analysis,
   flavor,
-  agentFilledAt = null,
+  agentFills = 0,
 }: VerdictPanelProps) {
+  const { verdict, copy } = analysis
   const moods = MOODS[verdict]
   // Each agent fill remounts the mascots (key) so the one-shot hop replays.
   const mascotClass = clsx(
     'size-28 group-hover:animate-hop motion-reduce:group-hover:animate-none sm:size-36',
-    agentFilledAt !== null && 'animate-hop motion-reduce:animate-none',
+    agentFills > 0 && 'animate-hop motion-reduce:animate-none',
   )
-  const winsHome = summary.netSavings > 0
-  const net = formatMoney(Math.abs(summary.netSavings), currency)
 
   return (
     <section
@@ -58,7 +38,7 @@ export function VerdictPanel({
       aria-live="polite"
       className="flex flex-col gap-5 rounded-lg border-4 border-foreground bg-screen p-5 text-screen-foreground shadow-pixel-lg"
     >
-      {agentFilledAt !== null && (
+      {agentFills > 0 && (
         <p className="self-center bg-screen-foreground px-2.5 py-1 font-pixel text-xs text-screen">
           Filled by your agent
         </p>
@@ -66,7 +46,7 @@ export function VerdictPanel({
       <div className="flex items-end justify-center gap-4 sm:gap-8">
         <figure className="group flex flex-col items-center gap-2">
           <Bitspresso
-            key={agentFilledAt}
+            key={agentFills}
             form="togo"
             mood={moods.togo}
             flavor={flavor}
@@ -84,7 +64,7 @@ export function VerdictPanel({
         </span>
         <figure className="group flex flex-col items-center gap-2">
           <Bitspresso
-            key={agentFilledAt}
+            key={agentFills}
             form="mug"
             mood={moods.mug}
             flavor={flavor}
@@ -103,13 +83,9 @@ export function VerdictPanel({
           id="verdict-title"
           className="font-pixel text-xl leading-snug text-balance sm:text-2xl"
         >
-          {headline(verdict, summary, years)}
+          {copy.headline}
         </h2>
-        <p className="text-base opacity-85">
-          {winsHome
-            ? `Over ${years} ${years === 1 ? 'year' : 'years'} the machine leaves ${net} in your pocket.`
-            : `Over ${years} ${years === 1 ? 'year' : 'years'} buying out costs ${net} less than the machine.`}
-        </p>
+        <p className="text-base opacity-85">{copy.net}</p>
       </div>
     </section>
   )

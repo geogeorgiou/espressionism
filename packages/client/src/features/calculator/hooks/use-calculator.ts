@@ -1,0 +1,109 @@
+import type { CalculatorFill } from '@espressionism/agent/contract'
+import { analyze, fillTool } from '@espressionism/calculator'
+import { useSelector } from '@tanstack/react-form'
+import { getRouteApi } from '@tanstack/react-router'
+import { useCallback, useMemo, useState } from 'react'
+
+import type { CalculatorHandle } from '@/features/chat/hooks/use-chat'
+import { useAppForm } from '@/features/common/form/form'
+import { useWebMcpTool } from '@/features/webmcp/hooks/use-webmcp-tool'
+
+import type { CalculatorValues } from '../constants'
+import { DEFAULT_INPUTS, calculatorSchema } from '../constants'
+import { calculatorFormOptions } from '../utils/form-options'
+
+const Route = getRouteApi('/')
+
+/** Where the calculator's last valid values live between visits. */
+export interface CalculatorUrl {
+  /** The values in the URL now: any subset, already validated. */
+  search: Partial<CalculatorValues>
+  /** Replaces the URL's values, without a history entry or a scroll. */
+  save: (values: CalculatorValues) => void
+}
+
+/** Wait after the last keystroke before the URL follows the form. */
+const URL_SYNC_MS = 400
+
+const ANNOTATIONS: WebMCP.ToolAnnotations = {
+  readOnlyHint: false,
+  untrustedContentHint: false,
+  consequentialHint: false,
+  debugging: false,
+}
+
+/** The calculator route's URL, as `useCalculator` reads and writes it. */
+export function useCalculatorUrl(): CalculatorUrl {
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  return {
+    search,
+    save: (values) =>
+      void navigate({ search: values, replace: true, resetScroll: false }),
+  }
+}
+
+/**
+ * The calculator page's state: the form, the values the results show (the
+ * form's when valid, otherwise the URL's, which are the last valid ones),
+ * their analysis, and both agents' way in. A visitor's agent fills it over
+ * WebMCP (`fill_calculator`, registered while mounted) and Robospresso
+ * through `chat`; either way the changed fields land on the form as if
+ * typed, and `agentFills` counts up. The URL follows valid values, debounced,
+ * so a result can be bookmarked or shared.
+ */
+export function useCalculator({ search, save }: CalculatorUrl) {
+  const form = useAppForm({
+    ...calculatorFormOptions,
+    defaultValues: { ...DEFAULT_INPUTS, ...search },
+    listeners: {
+      onChangeDebounceMs: URL_SYNC_MS,
+      onChange: ({ formApi }) => {
+        const parsed = calculatorSchema.safeParse(formApi.state.values)
+        if (parsed.success) save(parsed.data)
+      },
+    },
+  })
+
+  const readValues = useCallback(() => {
+    const parsed = calculatorSchema.safeParse(form.state.values)
+    return parsed.success ? parsed.data : undefined
+  }, [form])
+
+  // How many fills an agent has put on the form since the page mounted.
+  const [agentFills, setAgentFills] = useState(0)
+
+  const putOnForm = useCallback(
+    ({ changes, values }: CalculatorFill) => {
+      for (const name of Object.keys(changes) as (keyof CalculatorValues)[]) {
+        form.setFieldValue(name, values[name])
+      }
+      setAgentFills((count) => count + 1)
+    },
+    [form],
+  )
+
+  useWebMcpTool(fillTool, {
+    annotations: ANNOTATIONS,
+    context: () => ({ current: form.state.values }),
+    onResult: putOnForm,
+  })
+
+  const chat = useMemo<CalculatorHandle>(
+    () => ({ getValues: readValues, apply: putOnForm }),
+    [readValues, putOnForm],
+  )
+
+  const formValues = useSelector(form.store, (state) => state.values)
+  // Memoized so the charts' series keep their identity between renders that
+  // don't change the form or the URL.
+  const { values, analysis } = useMemo(() => {
+    const parsed = calculatorSchema.safeParse(formValues)
+    const shown: CalculatorValues = parsed.success
+      ? parsed.data
+      : { ...DEFAULT_INPUTS, ...search }
+    return { values: shown, analysis: analyze(shown) }
+  }, [formValues, search])
+
+  return { form, values, analysis, agentFills, chat }
+}

@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vite-plus/test'
-import { z } from 'zod'
 
 import type { Machine } from '../../src'
 import {
   CATALOG,
   DEFAULT_SEARCH_LIMIT,
-  SEARCH_TOOL,
-  runStoreSearch,
   searchResultSchema,
-  searchToolInputSchema,
+  searchTool,
 } from '../../src'
+
+const runStoreSearch = (input: unknown, machines?: readonly Machine[]) =>
+  searchTool.run(input, { machines })
 
 function machine(name: string, price: number, rating: number | null): Machine {
   const slug = name.toLowerCase().replace(/\s+/g, '-')
@@ -32,7 +32,7 @@ const SAMPLE = [
   machine('Philips Five', 1200, 4.8),
 ]
 
-describe('runStoreSearch', () => {
+describe('searchTool.run', () => {
   it('filters and sorts like the store page, best rated first', () => {
     const result = runStoreSearch({ maxPrice: 900 }, SAMPLE)
     expect(result.ok).toBe(true)
@@ -67,11 +67,12 @@ describe('runStoreSearch', () => {
     expect(result.ok && result.total).toBe(CATALOG.length)
   })
 
-  it('returns a result that matches the shared schema', () => {
+  it('returns a result that matches the shared schemas', () => {
     const result = runStoreSearch({ minRating: 4 })
     if (!result.ok) throw new Error('expected a result')
     const { ok: _ok, ...data } = result
     expect(searchResultSchema.safeParse(data).success).toBe(true)
+    expect(searchTool.outputSchema.parse(result)).toEqual(result)
   })
 
   it.each([
@@ -93,11 +94,11 @@ describe('runStoreSearch', () => {
 
 describe('the tool definition', () => {
   it('uses one snake_case name for every host', () => {
-    expect(SEARCH_TOOL.name).toBe('search_espresso_machines')
+    expect(searchTool.name).toBe('search_espresso_machines')
   })
 
   it('describes every input field to agents in its JSON Schema', () => {
-    const schema = z.toJSONSchema(searchToolInputSchema) as {
+    const schema = searchTool.jsonSchema as {
       properties: Record<string, { description?: string }>
       additionalProperties: unknown
     }
