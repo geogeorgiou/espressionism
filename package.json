@@ -33,7 +33,9 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:api": "node --no-experimental-detect-module scripts/check-api.mjs",
     "test:unit": "vp run -r test:unit",
+    "test:mutation-tooling": "vp test run",
     "test:e2e": "vp run -r test:e2e",
+    "test:mutation": "node scripts/mutation.ts",
     "prepare": "vp config --no-agent"
   },
   "dependencies": {
@@ -42,6 +44,8 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
     "@types/node": "catalog:",
     "actions-up": "catalog:",
     "dependency-cruiser": "catalog:",
