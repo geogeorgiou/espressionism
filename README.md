@@ -43,21 +43,22 @@ Espressionism has two halves: a **UI** with two pages, and an **agent** that ans
 
 ## Stack
 
-| Area            | Tools                                                                                                                                                      |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework       | [TanStack Start](https://tanstack.com/start) (SPA mode) on [React 19](https://react.dev)                                                                   |
-| Routing         | [TanStack Router](https://tanstack.com/router) with type-safe, URL-validated search params                                                                 |
-| Forms           | [TanStack Form](https://tanstack.com/form) + [Zod](https://zod.dev) validation                                                                             |
-| Chat            | [AI SDK](https://ai-sdk.dev) (`streamText`, UI message streams, `@ai-sdk/react`) with [Gemini](https://ai.google.dev) via Google AI Studio                 |
-| AI agents       | [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tools, with their status kept in a [Zustand](https://zustand.docs.pmnd.rs) store                     |
-| Charts          | [react-charts](https://react-charts.tanstack.com) (TanStack Charts)                                                                                        |
-| UI              | [shadcn/ui](https://ui.shadcn.com) on [Radix UI](https://www.radix-ui.com), [Tailwind CSS v4](https://tailwindcss.com), [Lucide](https://lucide.dev) icons |
-| Fonts           | [Silkscreen](https://fonts.google.com/specimen/Silkscreen) for pixel headings, [Karla](https://fonts.google.com/specimen/Karla) for body text              |
-| Toolchain       | [Vite+](https://viteplus.dev) (`vp`): dev server, build, [Oxlint](https://oxc.rs/docs/guide/usage/linter), [Oxfmt](https://oxc.rs) and tests               |
-| Testing         | [Vitest](https://vitest.dev) + [Testing Library](https://testing-library.com) on [jsdom](https://github.com/jsdom/jsdom)                                   |
-| Language        | [TypeScript](https://www.typescriptlang.org)                                                                                                               |
-| Package manager | [pnpm](https://pnpm.io) workspaces, with supply-chain hardening (release-age delay, trust policy)                                                          |
-| Dev tooling     | [TanStack Devtools](https://tanstack.com/devtools), [commitlint](https://commitlint.js.org) (Conventional Commits)                                         |
+| Area             | Tools                                                                                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework        | [TanStack Start](https://tanstack.com/start) (SPA mode) on [React 19](https://react.dev)                                                                   |
+| Routing          | [TanStack Router](https://tanstack.com/router) with type-safe, URL-validated search params                                                                 |
+| Forms            | [TanStack Form](https://tanstack.com/form) + [Zod](https://zod.dev) validation                                                                             |
+| Chat             | [AI SDK](https://ai-sdk.dev) (`streamText`, UI message streams, `@ai-sdk/react`) with [Gemini](https://ai.google.dev) via Google AI Studio                 |
+| AI agents        | [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tools, with their status kept in a [Zustand](https://zustand.docs.pmnd.rs) store                     |
+| Charts           | [react-charts](https://react-charts.tanstack.com) (TanStack Charts)                                                                                        |
+| UI               | [shadcn/ui](https://ui.shadcn.com) on [Radix UI](https://www.radix-ui.com), [Tailwind CSS v4](https://tailwindcss.com), [Lucide](https://lucide.dev) icons |
+| Fonts            | [Silkscreen](https://fonts.google.com/specimen/Silkscreen) for pixel headings, [Karla](https://fonts.google.com/specimen/Karla) for body text              |
+| Toolchain        | [Vite+](https://viteplus.dev) (`vp`): dev server, build, [Oxlint](https://oxc.rs/docs/guide/usage/linter), [Oxfmt](https://oxc.rs) and tests               |
+| Testing          | [Vitest](https://vitest.dev) + [Testing Library](https://testing-library.com) on [jsdom](https://github.com/jsdom/jsdom)                                   |
+| Mutation testing | [Stryker](https://stryker-mutator.io) on the lines each PR changes, one run per package ([ADR 0001](docs/adr/0001-adopt-stryker-mutation-testing.md))      |
+| Language         | [TypeScript](https://www.typescriptlang.org)                                                                                                               |
+| Package manager  | [pnpm](https://pnpm.io) workspaces, with supply-chain hardening (release-age delay, trust policy)                                                          |
+| Dev tooling      | [TanStack Devtools](https://tanstack.com/devtools), [commitlint](https://commitlint.js.org) (Conventional Commits)                                         |
 
 ## Getting started
 
@@ -84,16 +85,18 @@ The TanStack Devtools panel sits in the bottom-right corner while the dev server
 
 Run from the repo root:
 
-| Command                | What it does                                     |
-| ---------------------- | ------------------------------------------------ |
-| `pnpm dev`             | Start the client dev server on port 3000         |
-| `pnpm build`           | Production build (cached)                        |
-| `pnpm check`           | Format check + lint + type check                 |
-| `pnpm check --fix`     | Same, with autofixes                             |
-| `pnpm test:unit`       | Unit tests                                       |
-| `pnpm check:secrets`   | Prove the API key never reaches the built bundle |
-| `pnpm lint:boundaries` | Check import boundaries (runs in CI)             |
-| `pnpm test:e2e`        | End-to-end tests (Playwright)                    |
+| Command                      | What it does                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------- |
+| `pnpm dev`                   | Start the client dev server on port 3000                                                |
+| `pnpm build`                 | Production build (cached)                                                               |
+| `pnpm check`                 | Format check + lint + type check                                                        |
+| `pnpm check --fix`           | Same, with autofixes                                                                    |
+| `pnpm test:unit`             | Unit tests                                                                              |
+| `pnpm test:mutation [base]`  | Mutation testing on the lines changed since `base` (default `origin/main`), per package |
+| `pnpm test:mutation-tooling` | Tests for the mutation testing scripts                                                  |
+| `pnpm check:secrets`         | Prove the API key never reaches the built bundle                                        |
+| `pnpm lint:boundaries`       | Check import boundaries (runs in CI)                                                    |
+| `pnpm test:e2e`              | End-to-end tests (Playwright)                                                           |
 
 ## Robospresso chat
 

@@ -33,3 +33,8 @@ pnpm-debug.log*
 
 # AI artifacts
 .claude/settings.local.json
+
+# mutation testing (scripts/mutation.ts)
+**/reports/mutation
+**/reports/stryker-incremental.json
+.stryker-tmp

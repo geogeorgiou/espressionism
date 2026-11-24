@@ -29,6 +29,11 @@ export default defineConfig({
       ...generatedPaths,
     ],
   },
+  test: {
+    name: 'mutation-tooling',
+    environment: 'node',
+    include: ['scripts/mutation*.test.ts'],
+  },
   staged: {
     '*': 'vp check --fix',
     '.github/**/*.{yml,yaml}': 'scripts/lint-actions.sh',
