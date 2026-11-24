@@ -484,6 +484,16 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /*
+   * Tailwind v4's preflight leaves buttons on the default cursor. Anything
+   * the visitor can press gets the pointer, unless it's disabled. This covers
+   * Radix triggers too (the select and the theme switcher are buttons).
+   */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
   @media (prefers-reduced-motion: no-preference) {
     html {
       scroll-behavior: smooth;
