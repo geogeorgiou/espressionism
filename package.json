@@ -33,7 +33,7 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:api": "node --no-experimental-detect-module scripts/check-api.mjs",
     "test:unit": "vp run -r test:unit",
-    "test:mutation-tooling": "vp test run",
+    "test:tooling": "vp test run",
     "test:e2e": "vp run -r test:e2e",
     "test:mutation": "node scripts/mutation.ts",
     "prepare": "vp config --no-agent"
@@ -42,6 +42,7 @@
     "@espressionism/agent": "workspace:*"
   },
   "devDependencies": {
+    "@ai-hero/sandcastle": "^0.14.0",
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
     "@stryker-mutator/core": "^10.1.1",
@@ -50,7 +51,8 @@
     "actions-up": "catalog:",
     "dependency-cruiser": "catalog:",
     "typescript": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "zod": "catalog:"
   },
   "packageManager": "pnpm@10.28.0"
 }

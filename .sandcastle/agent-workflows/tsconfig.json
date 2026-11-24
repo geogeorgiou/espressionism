@@ -1,0 +1,9 @@
+{
+  // Node runs these scripts as they are, stripping the types, so relative
+  // imports name the .ts file.
+  "extends": "../../tsconfig.json",
+  "include": ["**/*.ts"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  }
+}

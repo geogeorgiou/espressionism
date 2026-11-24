@@ -1,0 +1,49 @@
+name: Set up an agent job
+description: >
+  Node, pnpm and the repo's dependencies, plus the two tools only the agent
+  workflows use: Claude Code and agent-browser with its Chrome.
+
+# Claude Code and agent-browser are not in package.json: nothing in the app
+# uses them, so they stay out of the lockfile and get installed here, for the
+# agent jobs only. They are pinned exactly, because a global install skips the
+# lockfile and pnpm-workspace.yaml's release-age and trust checks. Bump both
+# here, in this one place.
+
+runs:
+  using: composite
+  steps:
+    # Installs vp, Node (from .nvmrc) and pnpm, then runs `vp install`.
+    - name: Setup Vite+ and install dependencies
+      uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
+      with:
+        node-version-file: .nvmrc
+        cache: true
+
+    # Into $RUNNER_TEMP/agent-tools, and deliberately NOT onto $GITHUB_PATH.
+    # That would put a directory the agent can write to at the front of PATH
+    # for every later step, including the ones that hold FACTORY_PAT and run
+    # `git` and `gh`. Instead, each step that runs the agent puts
+    # $RUNNER_TEMP/agent-tools/bin on its own PATH. Sandcastle runs `claude`
+    # from PATH, and the agent runs `agent-browser` from it.
+    - name: Install Claude Code and agent-browser
+      shell: bash
+      env:
+        PREFIX: ${{ runner.temp }}/agent-tools
+      run: | # zizmor: ignore[adhoc-packages] kept out of the lockfile on purpose; pinned exactly
+        set -euo pipefail
+        npm install --global --prefix "$PREFIX" \
+          @anthropic-ai/claude-code@2.1.329 \
+          agent-browser@0.43.0
+
+    - name: Cache agent-browser's Chrome
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.agent-browser/browsers
+        key: agent-browser-0.43.0-${{ runner.os }}
+
+    # The agent drives the app with it for screenshots and checks. Without it
+    # here, each run installs it mid-session.
+    - name: Install agent-browser's Chrome
+      shell: bash
+      run: |
+        PATH="$RUNNER_TEMP/agent-tools/bin:$PATH" agent-browser install

@@ -38,8 +38,8 @@ jobs:
       - name: Test
         run: pnpm test:unit
 
-      - name: Mutation tooling tests
-        run: pnpm test:mutation-tooling
+      - name: Tooling tests
+        run: pnpm test:tooling
 
       - name: Build
         run: pnpm build

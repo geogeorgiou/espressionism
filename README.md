@@ -85,18 +85,18 @@ The TanStack Devtools panel sits in the bottom-right corner while the dev server
 
 Run from the repo root:
 
-| Command                      | What it does                                                                            |
-| ---------------------------- | --------------------------------------------------------------------------------------- |
-| `pnpm dev`                   | Start the client dev server on port 3000                                                |
-| `pnpm build`                 | Production build (cached)                                                               |
-| `pnpm check`                 | Format check + lint + type check                                                        |
-| `pnpm check --fix`           | Same, with autofixes                                                                    |
-| `pnpm test:unit`             | Unit tests                                                                              |
-| `pnpm test:mutation [base]`  | Mutation testing on the lines changed since `base` (default `origin/main`), per package |
-| `pnpm test:mutation-tooling` | Tests for the mutation testing scripts                                                  |
-| `pnpm check:secrets`         | Prove the API key never reaches the built bundle                                        |
-| `pnpm lint:boundaries`       | Check import boundaries (runs in CI)                                                    |
-| `pnpm test:e2e`              | End-to-end tests (Playwright)                                                           |
+| Command                     | What it does                                                                            |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| `pnpm dev`                  | Start the client dev server on port 3000                                                |
+| `pnpm build`                | Production build (cached)                                                               |
+| `pnpm check`                | Format check + lint + type check                                                        |
+| `pnpm check --fix`          | Same, with autofixes                                                                    |
+| `pnpm test:unit`            | Unit tests                                                                              |
+| `pnpm test:mutation [base]` | Mutation testing on the lines changed since `base` (default `origin/main`), per package |
+| `pnpm test:tooling`         | Tests for the mutation scripts and the agent workflows                                  |
+| `pnpm check:secrets`        | Prove the API key never reaches the built bundle                                        |
+| `pnpm lint:boundaries`      | Check import boundaries (runs in CI)                                                    |
+| `pnpm test:e2e`             | End-to-end tests (Playwright)                                                           |
 
 ## Robospresso chat
 
@@ -237,6 +237,10 @@ Packages and client layers may only import downward. [dependency-cruiser](https:
 - **Tests are exempt from the layers.** They may reach across layers to build fixtures, but must still resolve and stay acyclic.
 
 The rules, and the reason each exists, live in [`.dependency-cruiser.mjs`](./.dependency-cruiser.mjs). Redraw the diagram with `pnpm docs:boundaries` when they change.
+
+## Agent skills
+
+The agent workflows in `.github/workflows/agent-*.yml` run Claude Code in CI, where it sees only the skills committed here: `.agents/skills/`, linked as `.claude/skills/`. Most are vendored byte-identical from [mattpocock/skills](https://github.com/mattpocock/skills), with their source and content hash in `skills-lock.json`; `npx skills list` flags one that has drifted, and `npx skills update -p` refreshes them. `mutation-testing` belongs to this repo. Only skills that work unattended are vendored, since nobody answers an agent's question mid-run.
 
 ## License
 

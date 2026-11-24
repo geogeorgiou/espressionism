@@ -26,13 +26,15 @@ export default defineConfig({
       'pnpm-lock.yaml',
       'docs/**',
       '.claude/**',
+      // Vendored from ~/.agents/skills; keep them byte-identical.
+      '.agents/**',
       ...generatedPaths,
     ],
   },
   test: {
-    name: 'mutation-tooling',
+    name: 'tooling',
     environment: 'node',
-    include: ['scripts/mutation*.test.ts'],
+    include: ['scripts/mutation*.test.ts', '.sandcastle/**/*.test.ts'],
   },
   staged: {
     '*': 'vp check --fix',
